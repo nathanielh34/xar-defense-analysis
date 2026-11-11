@@ -1,0 +1,30 @@
+# XAR Defense Stock Analysis
+
+A small website for organizing the XAR (SPDR S&P Aerospace & Defense ETF) price-driver project: the plan, candidate drivers, the news strength index, the projection log and findings.
+
+## Viewing it
+
+- **Locally:** double-click `index.html`. It works without a server.
+- **Online:** turn on GitHub Pages (Settings → Pages → Deploy from branch → `main` / root). The site will be at `https://<your-username>.github.io/<repo-name>/`.
+
+## Updating it
+
+All content lives in `data/`. Edit a file, save, refresh.
+
+| File | What it holds |
+|---|---|
+| `data/articles.js` | One entry per scored article (`score`: +1 / 0 / −1). The running index and chart are calculated for you. |
+| `data/projections.js` | One entry per projection. Fill in `actual` after the target date; error, direction hit-rate and range hit-rate are calculated for you. |
+| `data/drivers.js` | Candidate drivers and their test status (`Not tested`, `Testing`, `Significant`, `Not significant`). |
+| `data/findings.js` | Findings journal (`Confirmed`, `Testing`, `Rejected`, `Idea`). |
+
+Each file is a JavaScript list. Copy an existing entry, paste it below, and change the values. Keep the commas between entries.
+
+## Structure
+
+```
+index.html        page layout and plan text
+assets/style.css  styling
+assets/app.js     tables, sorting, filters, index chart, projection stats
+data/*.js         your data
+```

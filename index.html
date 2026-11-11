@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>XAR Defense Analysis</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <div class="brand">
+        <span class="ticker">XAR</span>
+        <div>
+          <h1>Defense Stock Analysis</h1>
+          <p class="sub">What drives the SPDR S&amp;P Aerospace &amp; Defense ETF, and can we project it?</p>
+        </div>
+      </div>
+      <nav id="tabs">
+        <a href="#overview">Overview</a>
+        <a href="#drivers">Drivers</a>
+        <a href="#index">Strength Index</a>
+        <a href="#projections">Projections</a>
+        <a href="#findings">Findings</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- OVERVIEW -->
+    <section id="overview" class="page">
+      <div class="stats" id="stats"></div>
+
+      <h2>Objective</h2>
+      <p>Identify what drives XAR's price, build projections with several methods (including a news-based strength index), and test whether they beat simple benchmarks. This mirrors the copper price-driver project. The difference is that XAR is a basket of companies, so market-wide moves have to be separated from sector-specific drivers.</p>
+
+      <h2>Why XAR</h2>
+      <ul>
+        <li><b>One series for the sector</b>: works like "the copper price."</li>
+        <li><b>Equal-weighted</b>: mid- and small-caps count as much as the large primes (LMT, RTX, NOC, GD).</li>
+        <li><b>Aerospace exposure</b>: commercial aerospace suppliers mean air-travel demand matters too.</li>
+      </ul>
+
+      <h2>Methods</h2>
+      <ol>
+        <li><b>Monte Carlo (baseline)</b>: simulated paths from historical return and volatility.</li>
+        <li><b>Monte Carlo (index-adjusted)</b>: expected return shifted by the strength index.</li>
+        <li><b>Factor regression</b>: XAR returns on market return plus GPR, the index and contract dollars.</li>
+        <li><b>Event study</b>: XAR returns around conflict outbreaks and NDAA signings, compared with what the market predicts.</li>
+        <li><b>Benchmark</b>: analyst consensus targets for the top holdings.</li>
+      </ol>
+
+      <h2>Phases</h2>
+      <div class="phases">
+        <div class="phase"><span>1</span><b>Setup</b><p>Pull XAR &amp; S&amp;P 500 history, download GPR, build logs.</p></div>
+        <div class="phase"><span>2</span><b>Drivers</b><p>Market-factor regression, then add drivers one at a time.</p></div>
+        <div class="phase"><span>3</span><b>Index</b><p>Fix scoring rules, score past articles, validate against GPR.</p></div>
+        <div class="phase"><span>4</span><b>Projections</b><p>Monte Carlo, regression and event-study runs.</p></div>
+        <div class="phase"><span>5</span><b>Track</b><p>Log projections going forward.</p></div>
+        <div class="phase"><span>6</span><b>Evaluate</b><p>Backtest, regress results, compare with copper.</p></div>
+      </div>
+      <p class="note"><b>Backtest rule:</b> use only information available on each date. Hindsight leaks in easily with news-driven stocks.</p>
+    </section>
+
+    <!-- DRIVERS -->
+    <section id="drivers" class="page">
+      <h2>Candidate drivers</h2>
+      <p class="muted">Measure the market factor first, so that a "driver" isn't just the whole market moving. Edit <code>data/drivers.js</code> to update.</p>
+      <div class="filters" id="driverFilters"></div>
+      <div class="tablewrap"><table id="driverTable"></table></div>
+    </section>
+
+    <!-- STRENGTH INDEX -->
+    <section id="index" class="page">
+      <h2>News Strength Index</h2>
+      <p class="muted">Card-counting style: each article scores +1, 0 or −1, and the running total is the index. Edit <code>data/articles.js</code> to add articles.</p>
+      <div class="rules">
+        <div class="rule plus"><b>+1</b> New conflict or escalation, budget increase, major contract win, allied spending pledge</div>
+        <div class="rule minus"><b>−1</b> Ceasefire or peace deal, budget cut or CR freeze, program cancellation, cost overrun, production problem</div>
+        <div class="rule zero"><b>0</b> Neutral or mixed coverage</div>
+      </div>
+      <div class="chart" id="indexChart"></div>
+      <div class="tablewrap"><table id="articleTable"></table></div>
+    </section>
+
+    <!-- PROJECTIONS -->
+    <section id="projections" class="page">
+      <h2>Projection log</h2>
+      <p class="muted">Log every projection when you make it; fill in <code>actual</code> once the target date passes. Edit <code>data/projections.js</code>.</p>
+      <div class="stats" id="projStats"></div>
+      <div class="tablewrap"><table id="projTable"></table></div>
+    </section>
+
+    <!-- FINDINGS -->
+    <section id="findings" class="page">
+      <h2>Findings</h2>
+      <p class="muted">A running journal of what you've learned. Edit <code>data/findings.js</code>.</p>
+      <div class="filters" id="findingFilters"></div>
+      <div id="findingList"></div>
+    </section>
+  </main>
+
+  <footer class="wrap muted">Part of the Fools Gold Analysis project · Not investment advice</footer>
+
+  <script src="data/drivers.js"></script>
+  <script src="data/articles.js"></script>
+  <script src="data/projections.js"></script>
+  <script src="data/findings.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
