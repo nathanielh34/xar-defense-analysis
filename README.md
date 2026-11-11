@@ -28,3 +28,12 @@ assets/style.css  styling
 assets/app.js     tables, sorting, filters, index chart, projection stats
 data/*.js         your data
 ```
+
+## Running the analysis
+
+```
+pip install -r requirements.txt
+python analysis/01_market_factor.py
+```
+
+This downloads weekly XAR, S&P 500, VIX and 10-year yield data, runs the market-factor regression, saves `analysis/output/market_factor.md`, and updates `data/results.js` so the site shows the results. Commit and push afterward to publish.

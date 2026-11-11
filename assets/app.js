@@ -1,5 +1,9 @@
 (function () {
-  const DRIVERS = window.DRIVERS || [];
+  const RESULTS = window.RESULTS || null;
+  const DRIVERS = (window.DRIVERS || []).map((d) => {
+    const r = RESULTS && RESULTS.drivers && RESULTS.drivers[d.driver];
+    return r ? { ...d, status: r.status, result: r.result } : d;
+  });
   const ARTICLES = (window.ARTICLES || []).slice().sort((a, b) => a.date.localeCompare(b.date));
   const PROJECTIONS = window.PROJECTIONS || [];
   const FINDINGS = (window.FINDINGS || []).slice().sort((a, b) => b.date.localeCompare(a.date));
@@ -106,7 +110,8 @@
     stat(ARTICLES.length, "Articles scored") +
     stat(PROJECTIONS.length, "Projections logged") +
     stat(DRIVERS.filter((d) => d.status === "Significant").length + " / " + DRIVERS.length, "Drivers significant") +
-    stat(FINDINGS.length, "Findings");
+    stat(FINDINGS.length, "Findings") +
+    (RESULTS ? stat(RESULTS.beta.toFixed(2), "XAR beta vs S&P 500") + stat(Math.round(RESULTS.r2Market * 100) + "%", "Moves explained by market") : "");
 
   const driverCols = [
     { key: "category", label: "Category" },
