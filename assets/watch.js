@@ -160,6 +160,21 @@
   }
   drawNews();
 
+  // ---------- S&P 500 comparison data ----------
+  const spyD = new Map((M.spyDaily || []).map((r) => [r[0], r[1]]));
+  const spyI = new Map((M.spyIntraday || []).map((r) => [r[0], r[1]]));
+  const hasSpy = spyD.size > 0;
+  // S&P close for each XAR bar (last available close on or before that bar; weekly bars use the week's last day)
+  function spyFor(bars, weekly, intra) {
+    if (intra) return bars.map((b) => (spyI.has(b.time) ? spyI.get(b.time) : null));
+    const dates = [...spyD.keys()]; let j = 0, last = null;
+    return bars.map((b, k) => {
+      const until = weekly ? (bars[k + 1] ? bars[k + 1].time : "9999") : b.time;
+      while (j < dates.length && (weekly ? dates[j] < until : dates[j] <= until)) { last = spyD.get(dates[j]); j++; }
+      return last;
+    });
+  }
+
   // ---------- charts (built when the tab is first shown, so they get a real width) ----------
   let built = false;
   function buildCharts() {
@@ -173,19 +188,19 @@
       crosshair: { mode: LC.CrosshairMode.Normal },
     };
     const main = LC.createChart($("#priceChart"), { ...base, timeScale: { ...base.timeScale, visible: false } });
-    const mc = LC.createChart($("#macdChart"), { ...base, layout: { ...base.layout, attributionLogo: false }, timeScale: { ...base.timeScale, visible: false }, handleScroll: false, handleScale: false });
-    const rc = LC.createChart($("#rsiChart"), { ...base, layout: { ...base.layout, attributionLogo: false }, handleScroll: false, handleScale: false });
+    const rc = LC.createChart($("#rsiChart"), { ...base, layout: { ...base.layout, attributionLogo: false } });
 
-    const candles = main.addCandlestickSeries({ upColor: C.up, downColor: C.down, borderUpColor: C.up, borderDownColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineColor: C.navy });
-    const area = main.addAreaSeries({ lineColor: C.navy, topColor: "rgba(31,56,100,.25)", bottomColor: "rgba(31,56,100,0)", lineWidth: 2, visible: false });
-    const vol = main.addHistogramSeries({ priceScaleId: "vol", priceFormat: { type: "volume" }, lastValueVisible: false, priceLineVisible: false });
-    main.priceScale("vol").applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+    const candles = main.addCandlestickSeries({ upColor: C.up, downColor: C.down, borderUpColor: C.up, borderDownColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineColor: C.navy, title: "XAR" });
+    const area = main.addAreaSeries({ lineColor: C.navy, topColor: "rgba(31,56,100,.22)", bottomColor: "rgba(31,56,100,0)", lineWidth: 2, visible: false, title: "XAR" });
+    const spyLine = main.addLineSeries({ color: "#0f9bb5", lineWidth: 2, visible: false, priceLineVisible: false, title: "S&P 500" });
     const l50 = main.addLineSeries({ color: C.sma50, lineWidth: 1.5, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
     const l200 = main.addLineSeries({ color: C.sma200, lineWidth: 1.5, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-
-    const mh = mc.addHistogramSeries({ lastValueVisible: false, priceLineVisible: false });
-    const ml = mc.addLineSeries({ color: C.blue, lineWidth: 1.5, lastValueVisible: false, priceLineVisible: false });
-    const ms = mc.addLineSeries({ color: C.orange, lineWidth: 1.5, lastValueVisible: false, priceLineVisible: false });
+    // Overlays on their own hidden scales, stacked in the lower part of the price chart
+    const mh = main.addHistogramSeries({ priceScaleId: "macd", lastValueVisible: false, priceLineVisible: false });
+    const vol = main.addHistogramSeries({ priceScaleId: "vol", priceFormat: { type: "volume" }, lastValueVisible: false, priceLineVisible: false });
+    main.priceScale("vol").applyOptions({ scaleMargins: { top: 0.88, bottom: 0 } });
+    main.priceScale("macd").applyOptions({ scaleMargins: { top: 0.66, bottom: 0.13 } });
+    main.priceScale("right").applyOptions({ scaleMargins: { top: 0.06, bottom: 0.3 } });
 
     const rl = rc.addLineSeries({ color: C.purple, lineWidth: 1.5, priceLineVisible: false,
       autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }) });
@@ -193,37 +208,37 @@
     rl.createPriceLine({ price: 30, color: C.up, lineStyle: LC.LineStyle.Dashed, lineWidth: 1, axisLabelVisible: false, title: "30" });
     rl.createPriceLine({ price: 50, color: "#c4cad4", lineStyle: LC.LineStyle.Dotted, lineWidth: 1, axisLabelVisible: false, title: "" });
 
-    // Keep the three panes scrolled/zoomed together
+    // Keep the price and RSI panes scrolled/zoomed together
     let syncing = false;
-    [main, mc, rc].forEach((src) => src.timeScale().subscribeVisibleLogicalRangeChange((r) => {
+    [main, rc].forEach((src) => src.timeScale().subscribeVisibleLogicalRangeChange((r) => {
       if (!r || syncing) return; syncing = true;
-      [main, mc, rc].forEach((c) => { if (c !== src) c.timeScale().setVisibleLogicalRange(r); });
+      (src === main ? rc : main).timeScale().setVisibleLogicalRange(r);
       syncing = false;
     }));
 
-    const state = { range: "1Y", type: "Candles", sma50: true, sma200: true, volume: true };
-    let cur = null; // current slice
-
+    const state = { range: "1Y", type: "Candles", sma50: true, sma200: true, volume: true, macd: true, spy: false };
+    let cur = null;
     const val = (arr, i, bars) => (arr[i] == null ? { time: bars[i].time } : { time: bars[i].time, value: arr[i] });
+    const isoDay = (t) => new Date(t * 1000).toISOString().slice(0, 10);
 
+    // Which bars to load (10 years back so you can scroll) and which part to show first
     function slice() {
       if (state.range === "1D" || state.range === "5D") {
         const src = I; if (!src.bars.length) return null;
-        let from = 0;
-        if (state.range === "1D") {
-          const lastDay = new Date(src.bars[src.bars.length - 1].time * 1000).toISOString().slice(0, 10);
-          from = src.bars.findIndex((b) => new Date(b.time * 1000).toISOString().slice(0, 10) === lastDay);
-        }
-        return { src, from, intraday: true };
+        const days = [...new Set(src.bars.map((b) => isoDay(b.time)))];
+        const firstDay = days[Math.max(0, days.length - (state.range === "1D" ? 1 : 5))];
+        const viewFrom = src.bars.findIndex((b) => isoDay(b.time) === firstDay);
+        return { src, from: 0, viewFrom, intraday: true };
       }
-      const lastT = daily[daily.length - 1].time, d = new Date(lastT + "T00:00:00Z");
-      const back = { "1M": [0, 1], "3M": [0, 3], "6M": [0, 6], "1Y": [1, 0], "5Y": [5, 0] }[state.range];
-      let start = "0000-00-00";
-      if (state.range === "YTD") start = lastT.slice(0, 4) + "-01-01";
-      else if (back) { d.setUTCFullYear(d.getUTCFullYear() - back[0]); d.setUTCMonth(d.getUTCMonth() - back[1]); start = d.toISOString().slice(0, 10); }
-      const src = state.range === "5Y" || state.range === "MAX" ? W : D;
-      const from = Math.max(0, src.bars.findIndex((b) => b.time >= start));
-      return { src, from, intraday: false, weekly: src === W };
+      const weekly = state.range === "5Y" || state.range === "MAX";
+      const src = weekly ? W : D;
+      const lastT = daily[daily.length - 1].time;
+      const back = (y, m) => { const d = new Date(lastT + "T00:00:00Z"); d.setUTCFullYear(d.getUTCFullYear() - y); d.setUTCMonth(d.getUTCMonth() - m); return d.toISOString().slice(0, 10); };
+      const viewStart = { "1M": back(0, 1), "3M": back(0, 3), "6M": back(0, 6), YTD: lastT.slice(0, 4) + "-01-01", "1Y": back(1, 0), "5Y": back(5, 0), MAX: "0000" }[state.range];
+      const loadStart = state.range === "MAX" ? "0000" : back(10, 0);
+      const first = (t) => Math.max(0, src.bars.findIndex((b) => b.time >= t));
+      const from = first(loadStart);
+      return { src, from, viewFrom: first(viewStart), intraday: false, weekly };
     }
 
     function draw() {
@@ -233,25 +248,43 @@
       const bars = src.bars.slice(from);
       const idx = bars.map((_, k) => k + from);
       const showC = state.type === "Candles";
+      const cmp = state.spy && hasSpy;
+
+      // Compare mode: right scale shows % change from the first visible bar, for XAR and the S&P 500 alike
+      main.priceScale("right").applyOptions({ mode: cmp ? LC.PriceScaleMode.Percentage : LC.PriceScaleMode.Normal });
       candles.applyOptions({ visible: showC }); area.applyOptions({ visible: !showC });
       candles.setData(bars.map(({ time, open, high, low, close }) => ({ time, open, high, low, close })));
       area.setData(bars.map((b) => ({ time: b.time, value: b.close })));
-      vol.applyOptions({ visible: state.volume });
-      vol.setData(bars.map((b) => ({ time: b.time, value: b.volume, color: b.close >= b.open ? C.upSoft : C.downSoft })));
-      l50.applyOptions({ visible: state.sma50 && !intra }); l200.applyOptions({ visible: state.sma200 && !intra });
+
+      const spy = cmp ? spyFor(src.bars, cur.weekly, intra) : [];
+      cur.spy = spy;
+      spyLine.applyOptions({ visible: cmp });
+      spyLine.setData(cmp ? idx.map((i) => (spy[i] == null ? { time: src.bars[i].time } : { time: src.bars[i].time, value: spy[i] })) : []);
+
+      const smaOk = !intra && !cmp;
+      l50.applyOptions({ visible: state.sma50 && smaOk }); l200.applyOptions({ visible: state.sma200 && smaOk });
       l50.setData(idx.map((i) => val(src.sma50, i, src.bars)));
       l200.setData(idx.map((i) => val(src.sma200, i, src.bars)));
+
+      vol.applyOptions({ visible: state.volume });
+      vol.setData(bars.map((b) => ({ time: b.time, value: b.volume, color: b.close >= b.open ? C.upSoft : C.downSoft })));
+
+      mh.applyOptions({ visible: state.macd });
       mh.setData(idx.map((i) => {
         const h = src.macd.hist[i], p = src.macd.hist[i - 1];
         if (h == null) return { time: src.bars[i].time };
-        const color = h >= 0 ? (p != null && h < p ? "rgba(26,127,75,.45)" : C.up) : (p != null && h > p ? "rgba(192,57,43,.45)" : C.down);
+        const color = h >= 0 ? (p != null && h < p ? "rgba(26,127,75,.4)" : "rgba(26,127,75,.85)") : (p != null && h > p ? "rgba(192,57,43,.4)" : "rgba(192,57,43,.85)");
         return { time: src.bars[i].time, value: h, color };
       }));
-      ml.setData(idx.map((i) => val(src.macd.line, i, src.bars)));
-      ms.setData(idx.map((i) => val(src.macd.signal, i, src.bars)));
+
       rl.setData(idx.map((i) => val(src.rsi, i, src.bars)));
-      [main, mc, rc].forEach((c) => c.applyOptions({ timeScale: { timeVisible: intra, secondsVisible: false } }));
-      main.timeScale().fitContent();
+      [main, rc].forEach((c) => c.applyOptions({ timeScale: { timeVisible: intra, secondsVisible: false } }));
+
+      // Show the chosen range; everything older is loaded so you can scroll back
+      const n = bars.length, v0 = cur.viewFrom - from;
+      main.timeScale().setVisibleLogicalRange({ from: Math.max(0, v0) - 0.5, to: n - 1 + 3 });
+      $("#cmpNote").hidden = !cmp;
+      updateButtons();
       setLegend(null);
     }
 
@@ -263,38 +296,41 @@
       const prev = bars[k - 1];
       const ch = prev ? (b.close / prev.close - 1) * 100 : null;
       const t = typeof b.time === "number" ? new Date(b.time * 1000).toISOString().slice(0, 16).replace("T", " ") + " ET" : b.time;
+      const m = cur.src.macd, w = cur.weekly ? "w" : "";
+      const smaOk = !cur.intraday && !(state.spy && hasSpy);
       $("#legend").innerHTML = `${cur.weekly ? '<span class="pill">Weekly bars</span> ' : ""}<b>${cur.weekly ? "Week of " : ""}${t}</b> &nbsp; O <b>${f2(b.open)}</b> H <b>${f2(b.high)}</b> L <b>${f2(b.low)}</b> C <b>${f2(b.close)}</b> <span class="${cls(ch)}">${fPct(ch)}</span> &nbsp; Vol <b>${fVol(b.volume)}</b>` +
-        (!cur.intraday && state.sma50 ? ` &nbsp; <span style="color:${C.sma50}">SMA50${cur.weekly ? "w" : ""} ${f2(cur.src.sma50[k])}</span>` : "") +
-        (!cur.intraday && state.sma200 ? ` &nbsp; <span style="color:${C.sma200}">SMA200${cur.weekly ? "w" : ""} ${f2(cur.src.sma200[k])}</span>` : "");
-      const m = cur.src.macd;
-      $("#macdLegend").innerHTML = `&nbsp; <span style="color:${C.blue}">MACD ${m.line[k] == null ? "—" : m.line[k].toFixed(2)}</span> <span style="color:${C.orange}">Signal ${m.signal[k] == null ? "—" : m.signal[k].toFixed(2)}</span> <span>Hist ${m.hist[k] == null ? "—" : m.hist[k].toFixed(2)}</span>`;
+        (smaOk && state.sma50 ? ` &nbsp; <span style="color:${C.sma50}">SMA50${w} ${f2(cur.src.sma50[k])}</span>` : "") +
+        (smaOk && state.sma200 ? ` &nbsp; <span style="color:${C.sma200}">SMA200${w} ${f2(cur.src.sma200[k])}</span>` : "") +
+        (state.spy && hasSpy && cur.spy ? ` &nbsp; <span style="color:#0f9bb5">S&amp;P 500 ${f2(cur.spy[k])}</span>` : "") +
+        (state.macd ? `<br>MACD (12,26,9): <span style="color:${C.blue}">MACD ${m.line[k] == null ? "—" : m.line[k].toFixed(2)}</span> &nbsp;<span style="color:${C.orange}">Signal ${m.signal[k] == null ? "—" : m.signal[k].toFixed(2)}</span> &nbsp;<span class="${cls(m.hist[k])}">Histogram ${m.hist[k] == null ? "—" : m.hist[k].toFixed(2)}</span>` : "");
       $("#rsiLegend").innerHTML = `&nbsp; <span style="color:${C.purple}">${cur.src.rsi[k] == null ? "—" : cur.src.rsi[k].toFixed(1)}</span>`;
     }
     const indexOfTime = (t) => cur.src.bars.findIndex((b) => b.time === t);
     main.subscribeCrosshairMove((p) => {
-      if (!p || p.time == null) { mc.clearCrosshairPosition(); rc.clearCrosshairPosition(); setLegend(null); return; }
+      if (!p || p.time == null) { rc.clearCrosshairPosition(); setLegend(null); return; }
       const k = indexOfTime(p.time); setLegend(k < 0 ? null : k);
-      if (k >= 0) {
-        const h = cur.src.macd.hist[k], r = cur.src.rsi[k];
-        if (h != null) mc.setCrosshairPosition(h, p.time, mh); else mc.clearCrosshairPosition();
-        if (r != null) rc.setCrosshairPosition(r, p.time, rl); else rc.clearCrosshairPosition();
-      }
+      const r = k >= 0 ? cur.src.rsi[k] : null;
+      if (r != null) rc.setCrosshairPosition(r, p.time, rl); else rc.clearCrosshairPosition();
     });
 
     // Toolbar
-    function seg(el, opts, isOn, onClick) {
+    const segs = [];
+    function seg(el, opts, isOn, onClick, isDisabled = () => false) {
       const render = () => {
-        el.innerHTML = opts.map((o) => `<button class="${isOn(o) ? "on" : ""}">${o}</button>`).join("");
-        el.querySelectorAll("button").forEach((b, i) => (b.onclick = () => { onClick(opts[i]); render(); draw(); }));
+        el.innerHTML = opts.map((o) => `<button class="${isOn(o) ? "on" : ""}" ${isDisabled(o) ? "disabled" : ""}>${o}</button>`).join("");
+        el.querySelectorAll("button").forEach((b, i) => (b.onclick = () => { onClick(opts[i]); draw(); }));
       };
-      render();
+      segs.push(render); render();
     }
+    function updateButtons() { segs.forEach((r) => r()); }
     const ranges = (intraday.length ? ["1D", "5D"] : []).concat(["1M", "3M", "6M", "YTD", "1Y", "5Y", "MAX"]);
     seg($("#rangeBtns"), ranges, (o) => o === state.range, (o) => (state.range = o));
     seg($("#typeBtns"), ["Candles", "Line"], (o) => o === state.type, (o) => (state.type = o));
-    seg($("#overlayBtns"), ["SMA 50", "SMA 200", "Volume"],
-      (o) => (o === "SMA 50" ? state.sma50 : o === "SMA 200" ? state.sma200 : state.volume),
-      (o) => { if (o === "SMA 50") state.sma50 = !state.sma50; else if (o === "SMA 200") state.sma200 = !state.sma200; else state.volume = !state.volume; });
+    const toggles = { "SMA 50": "sma50", "SMA 200": "sma200", "MACD": "macd", "Volume": "volume", "S&P 500": "spy" };
+    seg($("#overlayBtns"), Object.keys(toggles).filter((o) => o !== "S&P 500" || hasSpy),
+      (o) => state[toggles[o]],
+      (o) => { state[toggles[o]] = !state[toggles[o]]; },
+      (o) => (o.startsWith("SMA") && (cur?.intraday || (state.spy && hasSpy))));
 
     draw();
   }

@@ -63,7 +63,9 @@ def fetch_prices():
     if daily.empty:
         raise RuntimeError("no daily data")
 
-    intraday = yf.Ticker("XAR").history(period="5d", interval="15m", auto_adjust=False).dropna(subset=["Close"])
+    intraday = yf.Ticker("XAR").history(period="60d", interval="15m", auto_adjust=False).dropna(subset=["Close"])
+    spy_d = yf.Ticker("SPY").history(start="2011-09-01", interval="1d", auto_adjust=False).dropna(subset=["Close"])
+    spy_i = yf.Ticker("SPY").history(period="60d", interval="15m", auto_adjust=False).dropna(subset=["Close"])
     comp = yf.download(["XAR", "SPY", "ITA"], period="6y", interval="1d", auto_adjust=True, progress=False)["Close"].dropna()
 
     # Daily bars: "YYYY-MM-DD" times
@@ -71,12 +73,17 @@ def fetch_prices():
               for ts, r in daily.iterrows()]
 
     # Intraday bars: shift New York wall-clock time to fake-UTC epoch seconds so the chart shows ET
+    def fake_utc(index):
+        return [int((ts - pd.Timestamp("1970-01-01")).total_seconds()) for ts in index.tz_convert(TZ).tz_localize(None)]
+
     i_rows = []
     if not intraday.empty:
-        idx = intraday.index.tz_convert(TZ).tz_localize(None)
-        for ts, (_, r) in zip(idx, intraday.iterrows()):
-            i_rows.append([int((ts - pd.Timestamp("1970-01-01")).total_seconds()),
-                           r2(r.Open), r2(r.High), r2(r.Low), r2(r.Close), int(r.Volume)])
+        for t, (_, r) in zip(fake_utc(intraday.index), intraday.iterrows()):
+            i_rows.append([t, r2(r.Open), r2(r.High), r2(r.Low), r2(r.Close), int(r.Volume)])
+
+    # S&P 500 (SPY) closes for the comparison overlay
+    spy_daily = [[ts.strftime("%Y-%m-%d"), r2(c)] for ts, c in spy_d["Close"].items()]
+    spy_intraday = [[t, r2(c)] for t, c in zip(fake_utc(spy_i.index), spy_i["Close"])] if not spy_i.empty else []
 
     last = daily.iloc[-1]
     prev = daily.iloc[-2]
@@ -85,6 +92,8 @@ def fetch_prices():
 
     # Live-ish quote from intraday if today's bar exists there
     price = float(intraday["Close"].iloc[-1]) if not intraday.empty else float(last.Close)
+    if not intraday.empty and intraday.index[-1].date() != daily.index[-1].date():
+        price = float(last.Close)  # intraday feed is behind; use the daily close
     as_of = (intraday.index[-1] if not intraday.empty else daily.index[-1]).tz_convert(TZ).strftime("%Y-%m-%d %H:%M")
 
     quote = {
@@ -119,7 +128,7 @@ def fetch_prices():
     rets = rets[rets.index >= end - pd.DateOffset(years=1)]
     beta = r2(rets["XAR"].cov(rets["SPY"]) / rets["SPY"].var())
 
-    return {"daily": d_rows, "intraday": i_rows, "quote": quote, "performance": perf, "beta1y": beta}
+    return {"daily": d_rows, "intraday": i_rows, "spyDaily": spy_daily, "spyIntraday": spy_intraday, "quote": quote, "performance": perf, "beta1y": beta}
 
 
 # ---------------------------------------------------------------- news

@@ -138,3 +138,7 @@ h3.sec { color: var(--navy); font-size: 16px; margin: 22px 0 8px; }
 .news-title { font-size: 14px; font-weight: 600; line-height: 1.35; }
 .news-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
 td.nowrap { white-space: nowrap; }
+.pane-main { height: 430px; }
+.cmp-note { font-size: 12px; color: #0f7a8f; background: #e7f6f9; border-radius: 6px; padding: 4px 8px; margin: 0 4px 6px; display: inline-block; }
+.seg button:disabled { opacity: .4; cursor: not-allowed; }
+.cmp-note[hidden] { display: none; }
