@@ -142,3 +142,40 @@ td.nowrap { white-space: nowrap; }
 .cmp-note { font-size: 12px; color: #0f7a8f; background: #e7f6f9; border-radius: 6px; padding: 4px 8px; margin: 0 4px 6px; display: inline-block; }
 .seg button:disabled { opacity: .4; cursor: not-allowed; }
 .cmp-note[hidden] { display: none; }
+
+/* ---------- Driver analysis panels ---------- */
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: #f7f9fc; }
+tr.open td { background: #eef3fb; }
+td.chev { width: 18px; color: var(--navy); font-size: 13px; }
+tr.drow > td { padding: 0; background: #fbfcfe; }
+.dpanel { padding: 18px 20px 22px; border-top: 2px solid var(--navy); }
+.dhead { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.dhead h3 { margin: 0; color: var(--navy); }
+.dhead p { margin: 2px 0 0; }
+.dhead > div:last-child { text-align: right; max-width: 420px; }
+.dstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 14px 0; }
+.dstat { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.dstat .l { font-size: 12px; color: var(--muted); }
+.dstat .v { font-size: 22px; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
+.dstat .s { font-size: 12px; color: var(--muted); }
+.equation { font-family: ui-monospace, Consolas, monospace; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+.interp { padding-left: 18px; margin: 12px 0; }
+.interp li { margin: 6px 0; font-size: 14px; }
+.plots { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-top: 14px; }
+.plot { margin: 0; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 10px 4px; }
+.plot figcaption { font-size: 13px; font-weight: 600; color: var(--navy); margin: 0 4px 4px; }
+.plot svg { width: 100%; height: auto; display: block; }
+.plot .ax { font-size: 11px; fill: #667085; }
+.plot .axl { font-size: 12px; fill: #475467; }
+.plot .dot { fill: rgba(31,56,100,.55); stroke: #fff; stroke-width: 1; }
+.plot .dot.out { fill: rgba(192,57,43,.8); }
+.plot .dot:hover { fill: #d9822b; }
+.plot .fit { stroke: #d9822b; stroke-width: 2.5; }
+.plot .eq { font-size: 12px; fill: #d9822b; font-weight: 600; }
+.dtables { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; margin-top: 14px; }
+.dpanel h4 { color: var(--navy); margin: 16px 0 6px; font-size: 14px; }
+.dtables h4 { margin-top: 4px; }
+.next { background: #fff7e6; border-left: 4px solid var(--amber); border-radius: 6px; padding: 4px 14px 8px; margin-top: 16px; }
+.next ul { padding-left: 18px; margin: 4px 0; font-size: 14px; }
+.next li { margin: 5px 0; }

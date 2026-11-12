@@ -1,6 +1,8 @@
 (function () {
   const RESULTS = window.RESULTS || null;
   const DRIVERS = (window.DRIVERS || []).map((d) => {
+    const da = window.DRIVER_ANALYSIS && window.DRIVER_ANALYSIS.drivers && window.DRIVER_ANALYSIS.drivers[d.driver];
+    if (da) return { ...d, status: da.status, result: da.result };
     const r = RESULTS && RESULTS.drivers && RESULTS.drivers[d.driver];
     return r ? { ...d, status: r.status, result: r.result } : d;
   });
@@ -113,16 +115,7 @@
     stat(FINDINGS.length, "Findings") +
     (RESULTS ? stat(RESULTS.beta.toFixed(2), "XAR beta vs S&P 500") + stat(Math.round(RESULTS.r2Market * 100) + "%", "Moves explained by market") : "");
 
-  const driverCols = [
-    { key: "category", label: "Category" },
-    { key: "driver", label: "Driver" },
-    { key: "measure", label: "Measure" },
-    { key: "source", label: "Source" },
-    { key: "status", label: "Status", render: (r) => statusPill(r.status) },
-    { key: "result", label: "Result" },
-  ];
-  const updDrivers = renderTable($("#driverTable"), driverCols, DRIVERS);
-  filterBar($("#driverFilters"), [...new Set(DRIVERS.map((d) => d.category))], (c) => updDrivers(c === "All" ? DRIVERS : DRIVERS.filter((d) => d.category === c)));
+  window.renderDrivers(DRIVERS, $("#driverTable"), $("#driverFilters"));
 
   drawIndexChart();
   renderTable($("#articleTable"), [
