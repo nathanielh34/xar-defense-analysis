@@ -37,3 +37,11 @@ python analysis/01_market_factor.py
 ```
 
 This downloads weekly XAR, S&P 500, VIX and 10-year yield data, runs the market-factor regression, saves `analysis/output/market_factor.md`, and updates `data/results.js` so the site shows the results. Commit and push afterward to publish.
+
+## XAR Watch tab (automatic market data)
+
+`.github/workflows/update-market.yml` runs `scripts/fetch_market.py` on GitHub about every 2 hours on weekdays (and whenever that script changes). It saves XAR prices, benchmark returns and defense headlines to `data/market.js` and commits it, so the site updates on its own.
+
+- To refresh right away: repo **Actions** tab → **Update XAR market data** → **Run workflow**.
+- Because this job commits to the repo, run `git pull` before you start editing.
+- Charts use TradingView Lightweight Charts (Apache 2.0, see `assets/vendor/`).

@@ -18,6 +18,7 @@
       </div>
       <nav id="tabs">
         <a href="#overview">Overview</a>
+        <a href="#watch">XAR Watch</a>
         <a href="#drivers">Drivers</a>
         <a href="#index">Strength Index</a>
         <a href="#projections">Projections</a>
@@ -60,6 +61,59 @@
         <div class="phase"><span>6</span><b>Evaluate</b><p>Backtest, regress results, compare with copper.</p></div>
       </div>
       <p class="note"><b>Backtest rule:</b> use only information available on each date. Hindsight leaks in easily with news-driven stocks.</p>
+    </section>
+
+    <!-- XAR WATCH -->
+    <section id="watch" class="page">
+      <div id="watchEmpty" class="empty-card" hidden>
+        <h2>Market data is on its way</h2>
+        <p class="muted">The price and news feed are fetched by a scheduled job on GitHub every couple of hours on weekdays. Once it has run, this tab fills in automatically.</p>
+      </div>
+      <div id="watchBody">
+        <div class="quote-head">
+          <div>
+            <div class="q-name"><span class="q-sym">XAR</span> SPDR S&amp;P Aerospace &amp; Defense ETF <span class="muted">· NYSE Arca</span></div>
+            <div class="q-price-row"><span id="qPrice" class="q-price">—</span><span id="qChange" class="q-change">—</span></div>
+            <div id="qAsOf" class="muted small">—</div>
+          </div>
+          <div class="signals" id="signals"></div>
+        </div>
+
+        <div class="watch-grid">
+          <div class="watch-main">
+            <div class="chart-card">
+              <div class="chart-toolbar">
+                <div class="seg" id="rangeBtns"></div>
+                <div class="seg" id="typeBtns"></div>
+                <div class="seg" id="overlayBtns"></div>
+              </div>
+              <div id="legend" class="legend"></div>
+              <div id="priceChart" class="pane pane-main"></div>
+              <div class="pane-label">MACD (12, 26, 9) <span id="macdLegend"></span></div>
+              <div id="macdChart" class="pane pane-sub"></div>
+              <div class="pane-label">RSI (14) <span id="rsiLegend"></span></div>
+              <div id="rsiChart" class="pane pane-sub"></div>
+            </div>
+
+            <h3 class="sec">Key statistics</h3>
+            <div class="kstats" id="keyStats"></div>
+
+            <div class="range52" id="range52"></div>
+
+            <h3 class="sec">Performance vs. benchmarks</h3>
+            <div class="tablewrap"><table id="perfTable"></table></div>
+          </div>
+
+          <aside class="watch-side">
+            <div class="news-card">
+              <div class="news-head"><h3>Defense headlines</h3><span class="muted small" id="newsUpdated"></span></div>
+              <div class="filters" id="newsFilters"></div>
+              <div id="newsList"></div>
+            </div>
+          </aside>
+        </div>
+        <p class="muted small">Prices from Yahoo Finance via yfinance, delayed and refreshed about every 2 hours on weekdays. Headlines from Google News, Defense News and Breaking Defense. Charts by <a href="https://www.tradingview.com/" target="_blank" rel="noopener">TradingView</a> Lightweight Charts. Not investment advice.</p>
+      </div>
     </section>
 
     <!-- DRIVERS -->
@@ -107,6 +161,9 @@
   <script src="data/projections.js"></script>
   <script src="data/findings.js"></script>
   <script src="data/results.js"></script>
+  <script src="data/market.js"></script>
+  <script src="assets/vendor/lightweight-charts.standalone.production.js"></script>
   <script src="assets/app.js"></script>
+  <script src="assets/watch.js"></script>
 </body>
 </html>
