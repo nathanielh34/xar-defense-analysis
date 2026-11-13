@@ -1,9 +1,10 @@
 """
 Driver analyses for the Drivers tab (runs on GitHub with the market-data job).
 
-Driver 1: S&P 500 returns
-  - 5-year monthly beta of XAR vs the S&P 500 (SPY), 60 completed months
-  - Linear regression  XAR_return = alpha + beta * SPY_return + error
+Market drivers (one per entry in BENCHMARKS):
+  - S&P 500 returns (SPY) and NASDAQ returns (QQQ)
+  - 5-year monthly beta of XAR vs the benchmark, 60 completed months
+  - Linear regression  XAR_return = alpha + beta * benchmark_return + error
   - Diagnostics, residuals, and correlations at a few horizons
 
 Uses dividend-adjusted (total return) prices. Writes data/drivers_results.js.
@@ -64,20 +65,35 @@ def regress(y, x):
     }
 
 
-def sp500_driver():
+def load_prices():
     import yfinance as yf
-    px = yf.download(["XAR", "SPY"], start="2011-09-01", interval="1d", auto_adjust=True, progress=False)["Close"].dropna()
+    return yf.download(["XAR"] + [b["ticker"] for b in BENCHMARKS], start="2011-09-01", interval="1d",
+                       auto_adjust=True, progress=False)["Close"]
+
+
+# Each benchmark gets the same regression, charts and diagnostics on the Drivers tab.
+BENCHMARKS = [
+    {"driver": "S&P 500 returns", "ticker": "SPY", "short": "S&P 500", "long": "SPY (S&P 500 ETF)",
+     "question": "How much does XAR move with the overall stock market?"},
+    {"driver": "NASDAQ returns", "ticker": "QQQ", "short": "NASDAQ", "long": "QQQ (NASDAQ-100 ETF)",
+     "question": "How much does XAR move with tech-heavy growth stocks on the NASDAQ?"},
+]
+
+
+def market_driver(px_all, bench):
+    t = bench["ticker"]
+    px = px_all[["XAR", t]].dropna()
 
     # --- Main model: 5-year monthly (60 completed months)
     mret = monthly_returns(px).tail(60)
-    res, stats_ = regress(mret["XAR"], mret["SPY"])
+    res, stats_ = regress(mret["XAR"], mret[t])
     points = [[d.strftime("%Y-%m"), r(x, 3), r(y, 3), r(f, 3), r(e, 3)]
-              for d, x, y, f, e in zip(mret.index, mret["SPY"], mret["XAR"], res.fittedvalues, res.resid)]
+              for d, x, y, f, e in zip(mret.index, mret[t], mret["XAR"], res.fittedvalues, res.resid)]
 
     # --- Rolling 36-month beta (full history) to show how beta changes over time
     all_m = monthly_returns(px)
-    cov = all_m["XAR"].rolling(36).cov(all_m["SPY"])
-    var = all_m["SPY"].rolling(36).var()
+    cov = all_m["XAR"].rolling(36).cov(all_m[t])
+    var = all_m[t].rolling(36).var()
     rolling = [[d.strftime("%Y-%m"), r(b, 3)] for d, b in (cov / var).dropna().items()]
 
     # --- Correlation / beta at other horizons for comparison
@@ -85,15 +101,16 @@ def sp500_driver():
     w = px.resample("W-FRI").last().pct_change().dropna()
     def cb(df, n):
         df = df.tail(n)
-        return {"corr": r(df["XAR"].corr(df["SPY"]), 3), "beta": r(df["XAR"].cov(df["SPY"]) / df["SPY"].var(), 3), "n": len(df)}
+        return {"corr": r(df["XAR"].corr(df[t]), 3), "beta": r(df["XAR"].cov(df[t]) / df[t].var(), 3), "n": len(df)}
     horizons = {"1Y daily": cb(d, 252), "3Y weekly": cb(w, 156), "5Y monthly": cb(all_m, 60), "Since 2011 monthly": cb(all_m, len(all_m))}
 
     return {
-        "title": "S&P 500 returns",
-        "question": "How much does XAR move with the overall stock market?",
-        "method": "OLS regression of XAR monthly total return on SPY (S&P 500 ETF) monthly total return, last 60 completed months.",
+        "title": bench["driver"],
+        "question": bench["question"],
+        "method": f"OLS regression of XAR monthly total return on {bench['long']} monthly total return, last 60 completed months.",
         "period": f"{mret.index[0].strftime('%b %Y')} to {mret.index[-1].strftime('%b %Y')}",
-        "xLabel": "S&P 500 (SPY) monthly return, %",
+        "bench": bench["short"],
+        "xLabel": f"{bench['short']} ({t}) monthly return, %",
         "yLabel": "XAR monthly return, %",
         **stats_,
         "points": points,          # [month, x, y, fitted, residual]
@@ -105,15 +122,33 @@ def sp500_driver():
     }
 
 
+def previous_results():
+    try:
+        txt = OUT.read_text(encoding="utf-8")
+        return json.loads(txt.split("=", 1)[1].strip().rstrip(";"))["drivers"]
+    except Exception:
+        return {}
+
+
 def main():
+    prev = previous_results()
     out = {"updated": datetime.now(timezone.utc).isoformat(timespec="minutes"), "drivers": {}}
     try:
-        out["drivers"]["S&P 500 returns"] = sp500_driver()
-        print("S&P 500 driver OK:", out["drivers"]["S&P 500 returns"]["result"])
+        px = load_prices()
     except Exception as e:
-        print("S&P 500 driver failed:", e)
-        if OUT.exists():
-            return  # keep the previous results
+        print("Price download failed:", e)
+        return  # keep the previous results
+    for bench in BENCHMARKS:
+        name = bench["driver"]
+        try:
+            out["drivers"][name] = market_driver(px, bench)
+            print(f"{name} driver OK:", out["drivers"][name]["result"])
+        except Exception as e:
+            print(f"{name} driver failed:", e)
+            if name in prev:
+                out["drivers"][name] = prev[name]  # keep the previous result for this driver
+    if not out["drivers"]:
+        return
     OUT.write_text("// Generated by scripts/drivers_analysis.py. Do not edit by hand.\nwindow.DRIVER_ANALYSIS = "
                    + json.dumps(out, separators=(",", ":")) + ";\n", encoding="utf-8")
 
