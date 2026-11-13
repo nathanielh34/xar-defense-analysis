@@ -2,6 +2,7 @@
 // status: "Not tested", "Testing", "Significant", "Not significant"
 window.DRIVERS = [
   { category: "Market", driver: "S&P 500 returns", measure: "Monthly total return (5Y)", source: "yfinance (SPY)", status: "Not tested", result: "" },
+  { category: "Market", driver: "NASDAQ returns", measure: "Monthly total return (5Y)", source: "yfinance (QQQ)", status: "Not tested", result: "" },
   { category: "Market", driver: "10-year Treasury yield", measure: "Change in yield", source: "FRED (DGS10)", status: "Not tested", result: "" },
   { category: "Market", driver: "Volatility", measure: "VIX level/change", source: "yfinance (^VIX)", status: "Not tested", result: "" },
   { category: "Budget & policy", driver: "Defense budget / NDAA", measure: "Event dates (request, passage, CRs)", source: "Congress.gov, news", status: "Not tested", result: "" },

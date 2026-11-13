@@ -79,13 +79,6 @@
     return svg(s, title);
   }
 
-  // Fifth chart in the S&P 500 panel: the same regression against the NASDAQ (QQQ).
-  function nasdaqPlot() {
-    const q = A["NASDAQ returns"];
-    if (q && q.points && q.points.length) return scatterPlot(q);
-    return `<figure class="plot"><figcaption>Regression: XAR vs NASDAQ monthly returns</figcaption><p class="muted small" style="padding:40px 12px;text-align:center">The NASDAQ chart appears after the next automatic market-data update.</p></figure>`;
-  }
-
   // ---------------- detail panel ----------------
   function detail(a) {
     const b = a.coef.beta, al = a.coef.alpha, bn = benchName(a);
@@ -124,7 +117,6 @@
           ${timePlot(a.points.map((p) => [p[0], p[4]]), "Residuals over time (unexplained XAR return each month)", "Residual", { bars: true, symmetric: true })}
           ${a.rollingBeta && a.rollingBeta.length ? timePlot(a.rollingBeta, "Rolling 36-month beta (how stable is beta?)", "Beta", { ref: 1, refLabel: "beta = 1 (moves with market)" }) : ""}
         </div>
-        ${a.title === "S&P 500 returns" ? `<div class="plots">${nasdaqPlot()}<div></div></div>` : ""}
 
         <div class="dtables">
           <div>
