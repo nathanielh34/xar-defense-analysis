@@ -5,6 +5,7 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const n2 = (v, d = 2) => (v == null ? "—" : Number(v).toFixed(d));
   const pFmt = (p) => (p == null ? "—" : p < 0.0001 ? "< 0.0001" : p.toFixed(4));
+  const benchName = (a) => esc(a.bench || "S&P 500");
   const sigPill = (p) => (p == null ? "" : p < 0.05 ? '<span class="pill good">Significant at 5%</span>' : '<span class="pill bad">Not significant</span>');
   const statusPill = (s) => {
     const c = { Significant: "good", "Not significant": "bad", Testing: "mid" }[s] || "";
@@ -39,10 +40,10 @@
     let s = g;
     if (xr[0] < 0 && xr[1] > 0) s += `<line x1="${sx(0)}" x2="${sx(0)}" y1="${P.t}" y2="${H - P.b}" stroke="#c4cad4"/>`;
     if (yr[0] < 0 && yr[1] > 0) s += `<line x1="${P.l}" x2="${W - P.r}" y1="${sy(0)}" y2="${sy(0)}" stroke="#c4cad4"/>`;
-    s += a.points.map((p) => `<circle cx="${sx(p[1])}" cy="${sy(p[2])}" r="4.5" class="dot"><title>${p[0]}: S&P ${n2(p[1])}%, XAR ${n2(p[2])}%</title></circle>`).join("");
+    s += a.points.map((p) => `<circle cx="${sx(p[1])}" cy="${sy(p[2])}" r="4.5" class="dot"><title>${p[0]}: ${benchName(a)} ${n2(p[1])}%, XAR ${n2(p[2])}%</title></circle>`).join("");
     s += `<line x1="${sx(xr[0])}" y1="${sy(al + b * xr[0])}" x2="${sx(xr[1])}" y2="${sy(al + b * xr[1])}" class="fit"/>`;
     s += `<text x="${W - P.r - 6}" y="${P.t + 16}" text-anchor="end" class="eq">ŷ = ${n2(al)} + ${n2(b)}x &nbsp; R² = ${n2(a.r2)}</text>`;
-    return svg(s, "Regression: XAR vs S&amp;P 500 monthly returns");
+    return svg(s, `Regression: XAR vs ${benchName(a)} monthly returns`);
   }
 
   function residualPlot(a) {
@@ -78,18 +79,25 @@
     return svg(s, title);
   }
 
+  // Fifth chart in the S&P 500 panel: the same regression against the NASDAQ (QQQ).
+  function nasdaqPlot() {
+    const q = A["NASDAQ returns"];
+    if (q && q.points && q.points.length) return scatterPlot(q);
+    return `<figure class="plot"><figcaption>Regression: XAR vs NASDAQ monthly returns</figcaption><p class="muted small" style="padding:40px 12px;text-align:center">The NASDAQ chart appears after the next automatic market-data update.</p></figure>`;
+  }
+
   // ---------------- detail panel ----------------
   function detail(a) {
-    const b = a.coef.beta, al = a.coef.alpha;
+    const b = a.coef.beta, al = a.coef.alpha, bn = benchName(a);
     const annAlpha = al.est * 12;
     const card = (l, v, sub = "") => `<div class="dstat"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`;
     const flag = (ok, good, bad) => (ok ? `<span class="pill good">${good}</span>` : `<span class="pill mid">${bad}</span>`);
     const interp = [
-      `<b>Beta ${n2(b.est)}:</b> over ${esc(a.period)}, when the S&P 500 rose 1% in a month, XAR rose about ${n2(b.est)}% on average. ` +
-        (b.ciLow > 1 ? "It is significantly <b>more volatile</b> than the market (the 95% range is entirely above 1)." :
-         b.ciHigh < 1 ? "It is significantly <b>less volatile</b> than the market (the 95% range is entirely below 1)." :
-         `The 95% range (${n2(b.ciLow)} to ${n2(b.ciHigh)}) includes 1, so we can't say it is more or less volatile than the market.`),
-      `<b>R² ${n2(a.r2)}:</b> the market explains about <b>${Math.round(a.r2 * 100)}%</b> of XAR's month-to-month moves. The other <b>${Math.round((1 - a.r2) * 100)}%</b> is what defense-specific drivers (budgets, geopolitics, contracts, the strength index) need to explain.`,
+      `<b>Beta ${n2(b.est)}:</b> over ${esc(a.period)}, when the ${bn} rose 1% in a month, XAR rose about ${n2(b.est)}% on average. ` +
+        (b.ciLow > 1 ? `It is significantly <b>more volatile</b> than the ${bn} (the 95% range is entirely above 1).` :
+         b.ciHigh < 1 ? `It is significantly <b>less volatile</b> than the ${bn} (the 95% range is entirely below 1).` :
+         `The 95% range (${n2(b.ciLow)} to ${n2(b.ciHigh)}) includes 1, so we can't say it is more or less volatile than the ${bn}.`),
+      `<b>R² ${n2(a.r2)}:</b> the ${bn} explains about <b>${Math.round(a.r2 * 100)}%</b> of XAR's month-to-month moves. The other <b>${Math.round((1 - a.r2) * 100)}%</b> is what defense-specific drivers (budgets, geopolitics, contracts, the strength index) need to explain.`,
       `<b>Correlation ${n2(a.corr)}:</b> ${Math.abs(a.corr) >= 0.7 ? "a strong" : Math.abs(a.corr) >= 0.4 ? "a moderate" : "a weak"} positive relationship (correlation is the square root of R² in a one-variable regression).`,
       `<b>Alpha ${n2(al.est)}% per month</b> (about ${n2(annAlpha, 1)}% a year): ${al.p < 0.05 ? "statistically significant, so XAR earned returns beyond what its market exposure explains." : `not statistically significant (p = ${pFmt(al.p)}), so there's no evidence XAR beat or lagged the market after adjusting for beta.`}`,
     ];
@@ -103,12 +111,12 @@
         <div class="dstats">
           ${card("5Y monthly beta", n2(b.est), `95% CI ${n2(b.ciLow)} to ${n2(b.ciHigh)}`)}
           ${card("R²", n2(a.r2), `adj. R² ${n2(a.adjR2)}`)}
-          ${card("Correlation", n2(a.corr), "XAR vs S&amp;P 500")}
+          ${card("Correlation", n2(a.corr), `XAR vs ${bn}`)}
           ${card("Alpha (monthly)", n2(al.est) + "%", `p = ${pFmt(al.p)}`)}
           ${card("Beta p-value", pFmt(b.p), "H₀: beta = 0")}
           ${card("Beta ≠ 1 test", `p = ${pFmt(a.betaVsOne.p)}`, "H₀: beta = 1")}
         </div>
-        <div class="equation">XAR return = <b>${n2(al.est, 3)}</b> + <b>${n2(b.est, 3)}</b> × S&amp;P 500 return + ε</div>
+        <div class="equation">XAR return = <b>${n2(al.est, 3)}</b> + <b>${n2(b.est, 3)}</b> × ${bn} return + ε</div>
         <ul class="interp">${interp.map((t) => `<li>${t}</li>`).join("")}</ul>
 
         <div class="plots">${scatterPlot(a)}${residualPlot(a)}</div>
@@ -116,6 +124,7 @@
           ${timePlot(a.points.map((p) => [p[0], p[4]]), "Residuals over time (unexplained XAR return each month)", "Residual", { bars: true, symmetric: true })}
           ${a.rollingBeta && a.rollingBeta.length ? timePlot(a.rollingBeta, "Rolling 36-month beta (how stable is beta?)", "Beta", { ref: 1, refLabel: "beta = 1 (moves with market)" }) : ""}
         </div>
+        ${a.title === "S&P 500 returns" ? `<div class="plots">${nasdaqPlot()}<div></div></div>` : ""}
 
         <div class="dtables">
           <div>
@@ -124,7 +133,7 @@
               <thead><tr><th></th><th class="num">Coef.</th><th class="num">Std. err.</th><th class="num">t</th><th class="num">p-value</th><th class="num">95% CI</th></tr></thead>
               <tbody>
                 <tr><td>Alpha (intercept)</td><td class="num">${n2(al.est, 4)}</td><td class="num">${n2(al.se, 4)}</td><td class="num">${n2(al.t)}</td><td class="num">${pFmt(al.p)}</td><td class="num">${n2(al.ciLow, 3)} to ${n2(al.ciHigh, 3)}</td></tr>
-                <tr><td>Beta (S&amp;P 500)</td><td class="num">${n2(b.est, 4)}</td><td class="num">${n2(b.se, 4)}</td><td class="num">${n2(b.t)}</td><td class="num">${pFmt(b.p)}</td><td class="num">${n2(b.ciLow, 3)} to ${n2(b.ciHigh, 3)}</td></tr>
+                <tr><td>Beta (${bn})</td><td class="num">${n2(b.est, 4)}</td><td class="num">${n2(b.se, 4)}</td><td class="num">${n2(b.t)}</td><td class="num">${pFmt(b.p)}</td><td class="num">${n2(b.ciLow, 3)} to ${n2(b.ciHigh, 3)}</td></tr>
               </tbody></table></div>
             <p class="muted small">n = ${a.n} · R² = ${n2(a.r2, 4)} · Adj. R² = ${n2(a.adjR2, 4)} · F = ${n2(a.fStat)} (p ${pFmt(a.fP)}) · Residual std. error = ${n2(a.residStd)}% ${sigPill(b.p)}</p>
           </div>
@@ -151,7 +160,7 @@
           <h4>What this suggests adding next</h4>
           <ul>
             <li><b>Use this as the baseline.</b> The ${Math.round((1 - a.r2) * 100)}% of variation the market doesn't explain is what each defense driver must account for. Test the next drivers on XAR's <i>residuals</i> (or add them as extra variables) so you aren't re-measuring the market.</li>
-            <li><b>Multiple regression:</b> add GPR (geopolitical risk), 10-year yield and VIX changes alongside the S&amp;P 500 and watch whether adjusted R² rises.</li>
+            <li><b>Multiple regression:</b> add GPR (geopolitical risk), 10-year yield and VIX changes alongside the ${bn} and watch whether adjusted R² rises.</li>
             ${a.breuschPaganP != null && a.breuschPaganP <= 0.05 ? "<li><b>Robust standard errors</b> (HC1): the Breusch-Pagan test flags changing variance, so p-values should be recomputed with robust errors.</li>" : ""}
             ${a.jarqueBeraP != null && a.jarqueBeraP <= 0.05 ? "<li><b>Check the outliers</b> (red dots in the residual plot): find which months they are and whether a news event explains them. That's a direct link to your strength index.</li>" : "<li><b>Look at the largest residuals</b> and match them to news events; that links this baseline to your strength index.</li>"}
             <li><b>Rolling beta</b> shows whether the relationship is stable; if it shifts a lot, use a shorter window when projecting.</li>
