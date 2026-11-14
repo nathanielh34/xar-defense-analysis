@@ -1,0 +1,76 @@
+{
+  "_about": "Keyword rules for the XAR strength index. Each rule is a case-insensitive regular expression. A headline's score is the sign of the sum of matched weights: >0 scores +1, <0 scores -1, otherwise 0. Edit freely; the next scheduled run rescores everything.",
+  "halfLifeDays": 14,
+  "rules": [
+    {
+      "label": "Conflict / escalation",
+      "weight": 1,
+      "pattern": "\\b(war|wartime|invasion|invades?|invaded|airstrikes?|air strikes?|missile strikes?|drone strikes?|missile attacks?|drone attacks?|escalat\\w*|offensive|mobiliz\\w*|hostilities|incursion|shelling|bombard\\w*|military buildup)\\b"
+    },
+    {
+      "label": "Threats & weapons tests",
+      "weight": 0.5,
+      "pattern": "\\b(missile tests?|nuclear tests?|icbm|ballistic missiles?|hypersonic|provocations?|saber[- ]rattling|tensions? (rise|rises|rising|mount|flare|soar))\\b"
+    },
+    {
+      "label": "Budget increase",
+      "weight": 1,
+      "pattern": "((defen[cs]e|military|pentagon) (budget|spending)\\W+(\\w+\\W+){0,4}(increase|increases|boost|boosts|hike|record|surge|jump|rise|rises|grow|grows|expand)|(increase|boost|hike|raise|raises|ramp up|double)\\w*\\W+(\\w+\\W+){0,3}(defen[cs]e|military) (spending|budget)|\\bndaa\\b\\W+(\\w+\\W+){0,3}(pass\\w*|sign\\w*|approv\\w*)|\\b(pass\\w*|sign\\w*|approv\\w*)\\W+(\\w+\\W+){0,3}(the )?ndaa\\b|supplemental (aid|funding)|\\brearm\\w*|trillion[- ]dollar (defen[cs]e|military))"
+    },
+    {
+      "label": "Allied spending pledge",
+      "weight": 1,
+      "pattern": "\\bnato\\b\\W+(\\w+\\W+){0,6}(spend\\w*|pledge\\w*|target|gdp|[2-5](\\.5)?%)"
+    },
+    {
+      "label": "Contract / order win",
+      "weight": 1,
+      "pattern": "(\\b(awarded|awards|wins?|won|secures?|secured|lands?|landed|books?|booked|clinch\\w*)\\b\\W+(\\w+\\W+){0,6}(contracts?|orders?|deals?|task orders?)\\b|\\$[\\d.,]+ ?(billion|bn|million|m)\\W+(\\w+\\W+){0,2}(contracts?|orders?|deals?)|arms (sales?|deals?|packages?)\\W+(\\w+\\W+){0,3}(approv\\w*|clear\\w*)|(approves?|clears?|okays?)\\W+(\\w+\\W+){0,4}(arms|weapons|missile|jet|fighter) (sales?|deals?|packages?))"
+    },
+    {
+      "label": "Strong results / upgrade",
+      "weight": 1,
+      "pattern": "\\b((beats?|tops?|surpass\\w*|exceeds?) ([\\w-]+ ){0,2}(estimates|expectations|forecasts?|views)|rais\\w* ([\\w-]+ ){0,2}(guidance|outlook|forecast)|record (backlog|revenue|orders|sales|profit)|upgrade[sd]?|price target raised|buy rating)\\b"
+    },
+    {
+      "label": "Stocks rise",
+      "weight": 1,
+      "pattern": "\\b(shares|stocks?|etf)\\b\\W+(\\w+\\W+){0,3}(jump\\w*|surg\\w*|soar\\w*|rall\\w*|climb\\w*|gain\\w*|rise|rises|rising|rose|hit (a )?record|all[- ]time high)\\b"
+    },
+    {
+      "label": "Peace effort breaks down",
+      "weight": 2,
+      "pattern": "\\b((peace|ceasefire|cease-fire|truce) (talks?|deal|efforts?|negotiations?)?\\s*(stall\\w*|collaps\\w*|break\\w* down|broke down|falter\\w*|fail\\w*|violat\\w*|shatter\\w*)|(talks|negotiations) (collapse|break down|stall))\\b"
+    },
+    {
+      "label": "Ceasefire / peace",
+      "weight": -1,
+      "pattern": "\\b(cease-?fires?|truce|armistice|peace (deal|talks|agreement|plan|accord|summit|process|treaty)|de-?escalat\\w*|withdraw\\w* (\\w+ )?troops|troop withdrawal|end (to )?the war|war ends?)\\b"
+    },
+    {
+      "label": "Budget cut / funding fight",
+      "weight": -1,
+      "pattern": "\\b((budget|spending|funding) cuts?|cut\\w* (\\w+ ){0,2}(defen[cs]e|military|pentagon) (budget|spending|funding)|sequest\\w+|continuing resolution|government shutdown|shutdown|debt ceiling|spending freeze)\\b"
+    },
+    {
+      "label": "Program trouble",
+      "weight": -1,
+      "pattern": "\\b(cancel\\w*|scrap\\w*|terminat\\w*|cost overruns?|over budget|behind schedule|delay(s|ed)?|grounded|grounds|setbacks?|failed|failure|halts?|halted|protest\\w* (\\w+ )?(award|contract)|recall\\w*|defects?)\\b"
+    },
+    {
+      "label": "Weak results / downgrade",
+      "weight": -1,
+      "pattern": "\\b(miss(es|ed)? (\\w+ )?(estimates|expectations|forecasts?)|(cuts?|lowers?|slashes?|trims?) ([\\w-]+ ){0,2}(guidance|outlook|forecast)|downgrade[sd]?|price target cut|writedowns?|write-downs?|charges? of|profit warning|layoffs?|job cuts)\\b"
+    },
+    {
+      "label": "Stocks fall",
+      "weight": -1,
+      "pattern": "\\b(shares|stocks?|etf)\\b\\W+(\\w+\\W+){0,3}(fall\\w*|fell|drop\\w*|slid\\w*|slump\\w*|tumbl\\w*|plung\\w*|sink\\w*|sank|declin\\w*|sell-?off|lose|lost)\\b"
+    },
+    {
+      "label": "Legal / labor trouble",
+      "weight": -1,
+      "pattern": "\\b((labor|union|workers?|machinists) (strike|walkout)|strike (vote|ends?|begins?)|walkout|probe|investigation|lawsuit|sued|indict\\w*|fined|penalty|export ban|bribery|fraud)\\b"
+    }
+  ]
+}

@@ -126,14 +126,65 @@
     <!-- STRENGTH INDEX -->
     <section id="index" class="page">
       <h2>News Strength Index</h2>
-      <p class="muted">Card-counting style: each article scores +1, 0 or −1, and the running total is the index. Edit <code>data/articles.js</code> to add articles.</p>
-      <div class="rules">
-        <div class="rule plus"><b>+1</b> New conflict or escalation, budget increase, major contract win, allied spending pledge</div>
-        <div class="rule minus"><b>−1</b> Ceasefire or peace deal, budget cut or CR freeze, program cancellation, cost overrun, production problem</div>
-        <div class="rule zero"><b>0</b> Neutral or mixed coverage</div>
+      <p class="muted">Card counting on defense headlines. Every headline is scored <b class="pos">+1</b> (good for XAR), <b>0</b> or <b class="neg">−1</b> (bad for XAR) by keyword rules, and the scores are added up into a running total that fades over time: each score counts fully on its day and loses half its weight every <b id="siHalf">14</b> days. Scores can be overridden by hand.</p>
+      <div id="siEmpty" class="empty-card" hidden><h2>Collecting headlines…</h2><p class="muted">The index is built by a job on GitHub. It appears here once the first run finishes.</p></div>
+      <div id="siBody">
+        <div class="stats" id="siStats"></div>
+
+        <div class="chart-card">
+          <div class="chart-toolbar">
+            <div class="seg" id="siRange"></div>
+            <div class="seg" id="siMode"></div>
+            <div class="seg" id="siOverlay"></div>
+          </div>
+          <div id="siLegend" class="legend"></div>
+          <div id="siChart" class="pane" style="height:340px"></div>
+          <div class="pane-label">Headlines per week <span class="muted">(click a bar or the chart to open that month's headlines below)</span></div>
+          <div id="siVolChart" class="pane" style="height:90px"></div>
+        </div>
+
+        <h3 class="sec" id="siLogTitle">Headline log</h3>
+        <div class="log-controls">
+          <select id="siMonth"></select>
+          <div class="seg" id="siScoreFilter"></div>
+          <input id="siSearch" type="search" placeholder="Search headlines…">
+          <span class="muted small" id="siCount"></span>
+        </div>
+        <div class="tablewrap"><table id="siTable"></table></div>
+        <div class="muted small" id="siMore"></div>
+
+        <div class="si-two">
+          <div>
+            <h3 class="sec">Does it work? Backtest</h3>
+            <p class="muted small">Monthly regressions of XAR returns on the index. "XAR minus S&amp;P 500" removes the general market so the test is about defense-specific moves. "Predict next month" uses only information available at the end of the previous month.</p>
+            <div class="tablewrap"><table id="siBacktest"></table></div>
+            <p class="small"><a href="#drivers" id="siDriverLink">See the full regression panel on the Drivers tab →</a></p>
+          </div>
+          <div>
+            <h3 class="sec">Scoring rules</h3>
+            <p class="muted small">A headline's score is the sign of the sum of the weights of the rules it matches. Edit <a href="https://github.com/nathanielh34/xar-defense-analysis/edit/main/data/scoring_rules.json" target="_blank" rel="noopener">data/scoring_rules.json</a> to change them; everything is rescored on the next run.</p>
+            <div class="tablewrap"><table id="siRules"></table></div>
+          </div>
+        </div>
       </div>
-      <div class="chart" id="indexChart"></div>
-      <div class="tablewrap"><table id="articleTable"></table></div>
+
+      <div id="siDialog" class="si-dialog" hidden>
+        <div class="si-dialog-box">
+          <h3>Change this headline's score</h3>
+          <p id="siDlgTitle" class="si-dlg-title"></p>
+          <p class="muted small" id="siDlgAuto"></p>
+          <div class="seg" id="siDlgScore"></div>
+          <label class="small">Your name <input id="siDlgBy" placeholder="e.g. Nathaniel or Will"></label>
+          <label class="small">Why <input id="siDlgNote" placeholder="e.g. 'strike' here is a labor strike"></label>
+          <p class="small"><b>To save it:</b> copy the line below, open the overrides file on GitHub, paste it inside <code>"overrides": { }</code> (add a comma if there are other entries), and commit. Or just ask Claude to change it for you.</p>
+          <pre id="siDlgSnippet" class="snippet"></pre>
+          <div class="dlg-actions">
+            <button id="siDlgCopy" class="btn">Copy line</button>
+            <a class="btn" href="https://github.com/nathanielh34/xar-defense-analysis/edit/main/data/score_overrides.json" target="_blank" rel="noopener">Open overrides file ↗</a>
+            <button id="siDlgClose" class="btn ghost">Close</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- PROJECTIONS -->
@@ -156,7 +207,7 @@
   <footer class="wrap muted">Part of the Fools Gold Analysis project · Not investment advice</footer>
 
   <script src="data/drivers.js"></script>
-  <script src="data/articles.js"></script>
+  <script src="data/strength.js"></script>
   <script src="data/projections.js"></script>
   <script src="data/findings.js"></script>
   <script src="data/results.js"></script>
@@ -166,5 +217,6 @@
   <script src="assets/drivers.js"></script>
   <script src="assets/app.js"></script>
   <script src="assets/watch.js"></script>
+  <script src="assets/strength.js"></script>
 </body>
 </html>

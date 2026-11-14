@@ -10,5 +10,5 @@ window.DRIVERS = [
   { category: "Contracts", driver: "DoD contract awards", measure: "Award $ per week to XAR holdings", source: "defense.gov contracts", status: "Not tested", result: "" },
   { category: "Commercial aerospace", driver: "Air travel & aircraft production", measure: "TSA throughput, delivery numbers", source: "TSA, Boeing/Airbus", status: "Not tested", result: "" },
   { category: "Fundamentals", driver: "Earnings surprises & backlog", measure: "Surprise % for top holdings", source: "Company reports", status: "Not tested", result: "" },
-  { category: "News", driver: "Strength Index", measure: "Running article score", source: "This site's article log", status: "Not tested", result: "" }
+  { category: "News", driver: "Strength Index", measure: "Monthly change in decayed headline score (5Y)", source: "Google News headlines, scored on this site", status: "Not tested", result: "" }
 ];

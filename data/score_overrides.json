@@ -1,0 +1,4 @@
+{
+  "_about": "Manual score overrides. Key = article id shown on the Strength Index tab. Value = {\"score\": -1|0|1, \"by\": \"who\", \"note\": \"why\"}. Overrides beat the keyword rules.",
+  "overrides": {}
+}

@@ -179,3 +179,30 @@ tr.drow > td { padding: 0; background: #fbfcfe; }
 .next { background: #fff7e6; border-left: 4px solid var(--amber); border-radius: 6px; padding: 4px 14px 8px; margin-top: 16px; }
 .next ul { padding-left: 18px; margin: 4px 0; font-size: 14px; }
 .next li { margin: 5px 0; }
+
+/* ---------- Strength index ---------- */
+.spill { display: inline-block; min-width: 30px; text-align: center; padding: 2px 6px; border-radius: 6px; font-weight: 700; font-size: 13px; }
+.spill.p { background: #e3f4ea; color: var(--green); }
+.spill.n { background: #fbe9e7; color: var(--red); }
+.spill.z { background: #eef1f6; color: var(--muted); }
+.log-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 4px; }
+.log-controls select, .log-controls input, .si-dialog input { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 14px; background: #fff; }
+.log-controls input { min-width: 220px; }
+a.hl { color: var(--ink); text-decoration: none; font-weight: 600; }
+a.hl:hover { color: var(--navy-2); text-decoration: underline; }
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 11px; }
+.btn { border: 1px solid var(--line); background: #fff; color: var(--navy); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+.btn:hover { background: #f0f3f8; }
+.btn.small { padding: 3px 9px; font-size: 12px; }
+.btn.ghost { border-color: transparent; color: var(--muted); }
+.si-two { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 18px; }
+@media (max-width: 900px) { .si-two { grid-template-columns: 1fr; } }
+.si-dialog { position: fixed; inset: 0; background: rgba(16,24,40,.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+.si-dialog[hidden] { display: none; }
+.si-dialog-box { background: #fff; border-radius: 14px; padding: 20px 22px; max-width: 560px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+.si-dialog-box h3 { margin: 0 0 8px; color: var(--navy); }
+.si-dlg-title { font-weight: 600; margin: 0 0 4px; }
+.si-dialog-box label { display: block; margin-top: 10px; color: var(--muted); }
+.si-dialog-box label input { display: block; width: 100%; margin-top: 3px; }
+.snippet { background: #0f172a; color: #e2e8f0; padding: 10px 12px; border-radius: 8px; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+.dlg-actions { display: flex; gap: 8px; flex-wrap: wrap; }

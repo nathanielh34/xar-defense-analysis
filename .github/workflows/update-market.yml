@@ -11,6 +11,9 @@ on:
     paths:
       - scripts/fetch_market.py
       - scripts/drivers_analysis.py
+      - scripts/strength_index.py
+      - data/scoring_rules.json
+      - data/score_overrides.json
       - .github/workflows/update-market.yml
 
 permissions:
@@ -37,6 +40,9 @@ jobs:
       - name: Fetch prices and headlines
         run: python scripts/fetch_market.py
 
+      - name: Update strength index (last 3 weeks of headlines)
+        run: python scripts/strength_index.py
+
       - name: Run driver analyses
         run: python scripts/drivers_analysis.py
 
@@ -44,7 +50,7 @@ jobs:
         run: |
           git config user.name "market-data-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/market.js data/drivers_results.js
+          git add data/market.js data/drivers_results.js data/strength.js data/strength_daily.csv data/news
           if git diff --cached --quiet; then
             echo "No changes"
             exit 0

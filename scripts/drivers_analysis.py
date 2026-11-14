@@ -68,8 +68,16 @@ def regress(y, x):
 
 def load_prices():
     import yfinance as yf
-    return yf.download(["XAR"] + [b["ticker"] for b in BENCHMARKS + RATES], start="2011-09-01", interval="1d",
-                       auto_adjust=True, progress=False)["Close"]
+    tickers = ["XAR"] + [b["ticker"] for b in BENCHMARKS + RATES if b["ticker"] != "STRENGTH"]
+    px = yf.download(tickers, start="2011-09-01", interval="1d", auto_adjust=True, progress=False)["Close"]
+    # Our own news strength index (built by scripts/strength_index.py), aligned to trading days
+    csv = ROOT / "data" / "strength_daily.csv"
+    if csv.exists():
+        si = pd.read_csv(csv, parse_dates=["date"]).set_index("date")["index"]
+        if px.index.tz is not None:
+            si.index = si.index.tz_localize(px.index.tz)
+        px["STRENGTH"] = si.reindex(px.index, method="ffill")
+    return px
 
 
 # Each benchmark gets the same regression, charts and diagnostics on the Drivers tab.
@@ -144,6 +152,15 @@ RATES = [
      "next": ["<b>Control for the market.</b> Run XAR on the S&amp;P 500 <i>and</i> VIX changes together. A significant VIX coefficient there would mean XAR reacts to fear differently than its beta implies (a safe-haven or crash-risk effect).",
               "<b>Look at the VIX spike months</b> (the far-right dots in the scatter plot) and check what XAR did relative to the S&amp;P 500 those months.",
               "<b>Try VIX levels as a regime filter:</b> compare XAR's beta in high-VIX (above 25) vs calm months."]},
+    {"driver": "Strength Index", "ticker": "STRENGTH", "short": "Strength Index", "long": "the news strength index (this site)",
+     "question": "Do months with more positive defense headlines line up with better XAR returns?",
+     "unit": "pt", "unitLong": "index point", "step": None, "levelSuffix": "",
+     "xLabel": "Change in strength index, points", "short2": "strength index",
+     "levelLabel": "Index now", "sensLabel": "Index sensitivity", "rollTitle": "Rolling 36-month index sensitivity (is it stable?)",
+     "caveat": "This is a same-month relationship, so it shows whether headlines and prices move together, not whether the index predicts. The Strength Index tab tests prediction (index at month end vs next month's return) and the defense-specific part of XAR's return (XAR minus the S&amp;P 500).",
+     "next": ["<b>Check the misses:</b> open the months with the largest residuals on the Strength Index tab (click the chart) and see whether the headlines were scored correctly; fix them with overrides or by editing the rules.",
+              "<b>Add the market:</b> regress XAR on the S&amp;P 500 and the index together to see if headlines explain anything beyond the market.",
+              "<b>Tune the half-life</b> in data/scoring_rules.json (e.g. 7 vs 30 days) and compare R²."]},
 ]
 
 
@@ -182,6 +199,9 @@ def rate_driver(px_all, rate):
     horizons = {"1Y daily": cb(d, 252), "3Y weekly": cb(w, 156), "5Y monthly": cb(all_m, 60), "Since 2011 monthly": cb(all_m, len(all_m))}
 
     b = stats_["coef"]["beta"]
+    if rate.get("step") is None:  # pick a typical monthly move for the readout
+        sd = float(mret[t].std())
+        rate = {**rate, "step": max(1, int(round(sd / 5.0)) * 5) if sd >= 5 else max(1, int(round(sd)))}
     return {
         "kind": "level",
         **{k: rate[k] for k in ["unit", "unitLong", "step", "levelSuffix", "levelLabel", "sensLabel", "rollTitle", "caveat", "next", "short2"]},

@@ -6,7 +6,6 @@
     const r = RESULTS && RESULTS.drivers && RESULTS.drivers[d.driver];
     return r ? { ...d, status: r.status, result: r.result } : d;
   });
-  const ARTICLES = (window.ARTICLES || []).slice().sort((a, b) => a.date.localeCompare(b.date));
   const PROJECTIONS = window.PROJECTIONS || [];
   const FINDINGS = (window.FINDINGS || []).slice().sort((a, b) => b.date.localeCompare(a.date));
 
@@ -62,33 +61,6 @@
     return `<span class="pill ${cls}">${esc(s)}</span>`;
   };
 
-  // ---------- Strength index ----------
-  let running = 0;
-  const articleRows = ARTICLES.map((a) => ({ ...a, total: (running += Number(a.score) || 0) }));
-  const indexNow = running;
-
-  function drawIndexChart() {
-    const el = $("#indexChart");
-    if (articleRows.length < 2) { el.innerHTML = `<div class="empty">The chart appears once there are at least two articles logged.</div>`; return; }
-    const W = 900, H = 240, P = { l: 40, r: 16, t: 16, b: 28 };
-    const t = articleRows.map((r) => new Date(r.date).getTime());
-    const v = articleRows.map((r) => r.total);
-    const tMin = Math.min(...t), tMax = Math.max(...t) || tMin + 1;
-    const vMin = Math.min(0, ...v), vMax = Math.max(0, ...v);
-    const vr = (vMax - vMin) || 1, tr = (tMax - tMin) || 1;
-    const x = (ti) => P.l + ((ti - tMin) / tr) * (W - P.l - P.r);
-    const y = (vi) => P.t + (1 - (vi - vMin) / vr) * (H - P.t - P.b);
-    let d = `M${x(t[0])},${y(v[0])}`;
-    for (let i = 1; i < t.length; i++) d += ` H${x(t[i])} V${y(v[i])}`;
-    const ticks = [vMin, Math.round((vMin + vMax) / 2), vMax].filter((n, i, a) => a.indexOf(n) === i);
-    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Strength index over time">
-      ${ticks.map((n) => `<line x1="${P.l}" x2="${W - P.r}" y1="${y(n)}" y2="${y(n)}" stroke="${n === 0 ? "#98a2b3" : "#e4e7ec"}" ${n === 0 ? 'stroke-dasharray="4 4"' : ""}/><text x="${P.l - 8}" y="${y(n) + 4}" font-size="12" text-anchor="end" fill="#667085">${n}</text>`).join("")}
-      <path d="${d}" fill="none" stroke="#1f3864" stroke-width="2.5"/>
-      <text x="${P.l}" y="${H - 6}" font-size="12" fill="#667085">${esc(articleRows[0].date)}</text>
-      <text x="${W - P.r}" y="${H - 6}" font-size="12" fill="#667085" text-anchor="end">${esc(articleRows[articleRows.length - 1].date)}</text>
-    </svg>`;
-  }
-
   // ---------- Projections ----------
   const projRows = PROJECTIONS.map((p) => {
     const hasActual = p.actual != null && p.projected != null;
@@ -108,8 +80,7 @@
 
   // ---------- Render ----------
   $("#stats").innerHTML =
-    stat(signed(indexNow), "Strength index now") +
-    stat(ARTICLES.length, "Articles scored") +
+    (window.STRENGTH && window.STRENGTH.now ? stat(signed(Math.round(window.STRENGTH.now.index)), "Strength index now") + stat(window.STRENGTH.coverage.articles.toLocaleString(), "Headlines scored") : "") +
     stat(PROJECTIONS.length, "Projections logged") +
     stat(DRIVERS.filter((d) => d.status === "Significant").length + " / " + DRIVERS.length, "Drivers significant") +
     stat(FINDINGS.length, "Findings") +
@@ -117,16 +88,6 @@
 
   window.renderDrivers(DRIVERS, $("#driverTable"), $("#driverFilters"));
 
-  drawIndexChart();
-  renderTable($("#articleTable"), [
-    { key: "date", label: "Date" },
-    { key: "source", label: "Source" },
-    { key: "headline", label: "Headline" },
-    { key: "category", label: "Category" },
-    { key: "score", label: "Score", num: true, render: (r) => signed(Number(r.score) || 0) },
-    { key: "total", label: "Running total", num: true, render: (r) => signed(r.total) },
-    { key: "note", label: "Note" },
-  ], articleRows.slice().reverse());
 
   $("#projStats").innerHTML =
     stat(scored.length + " / " + projRows.length, "Projections resolved") +

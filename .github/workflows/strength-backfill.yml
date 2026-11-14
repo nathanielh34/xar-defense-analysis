@@ -1,0 +1,53 @@
+name: Strength index backfill (one-time)
+
+# Collects ~5 years of past defense headlines week by week. It resumes where it
+# left off (data/news/_coverage.json), so it is safe to run again if it stops early.
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/strength-backfill.yml
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: update-market   # never runs at the same time as the regular data job
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 320
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pandas statsmodels scipy yfinance
+
+      - name: Backfill headlines since mid-2021
+        run: python scripts/strength_index.py --backfill 2021-06-01 --hours 4.5
+
+      - name: Re-run driver analyses with the full index
+        run: python scripts/drivers_analysis.py
+
+      - name: Commit
+        run: |
+          git config user.name "market-data-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/news data/strength.js data/strength_daily.csv data/drivers_results.js
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -m "Strength index: backfill historical headlines"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Rebuild the website
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds" || echo "Pages build request skipped"
