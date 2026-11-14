@@ -3,7 +3,7 @@ Driver analyses for the Drivers tab (runs on GitHub with the market-data job).
 
 Market drivers (one per entry in BENCHMARKS):
   - S&P 500 returns (SPY) and NASDAQ returns (QQQ)
-  - 10-year Treasury yield (^TNX): XAR return vs monthly change in yield
+  - 10-year Treasury yield (^TNX) and VIX (^VIX): XAR return vs monthly change in the level
   - 5-year monthly beta of XAR vs the benchmark, 60 completed months
   - Linear regression  XAR_return = alpha + beta * benchmark_return + error
   - Diagnostics, residuals, and correlations at a few horizons
@@ -124,9 +124,26 @@ def market_driver(px_all, bench):
 
 
 # Interest-rate drivers: XAR return regressed on the CHANGE in the yield (percentage points)
+# Level drivers: XAR return regressed on the monthly CHANGE in a level (a yield or an index)
 RATES = [
     {"driver": "10-year Treasury yield", "ticker": "^TNX", "short": "10Y Treasury yield", "long": "the 10-year Treasury yield (^TNX)",
-     "question": "Does XAR rise or fall when long-term interest rates move?"},
+     "question": "Does XAR rise or fall when long-term interest rates move?",
+     "unit": "pp", "unitLong": "percentage point", "step": 0.25, "levelSuffix": "%",
+     "xLabel": "Change in 10-year Treasury yield, percentage points", "short2": "10Y yield",
+     "levelLabel": "10Y yield now", "sensLabel": "Rate sensitivity", "rollTitle": "Rolling 36-month rate sensitivity (is it stable?)",
+     "caveat": "Rates and stocks often move together. Some of this relationship may be the stock market in disguise, so the real test is a multiple regression with both the S&P 500 and yield changes.",
+     "next": ["<b>Control for the market.</b> Run XAR on the S&amp;P 500 <i>and</i> yield changes together. If the yield coefficient stays significant, rates matter for XAR beyond their effect on stocks in general.",
+              "<b>Try XAR's residuals from the S&amp;P 500 regression</b> as the left-hand variable: that asks whether rates explain the defense-specific part of XAR's moves.",
+              "<b>Real vs nominal:</b> split the 10-year yield into inflation expectations and real yield (TIPS) to see which part matters."]},
+    {"driver": "Volatility", "ticker": "^VIX", "short": "VIX", "long": "the VIX volatility index (^VIX)",
+     "question": "Does XAR fall when market fear (expected volatility) rises?",
+     "unit": "pt", "unitLong": "index point", "step": 5, "levelSuffix": "",
+     "xLabel": "Change in VIX, index points", "short2": "VIX",
+     "levelLabel": "VIX now", "sensLabel": "Volatility sensitivity", "rollTitle": "Rolling 36-month volatility sensitivity (is it stable?)",
+     "caveat": "The VIX is calculated from S&amp;P 500 option prices, and it almost always jumps when stocks fall. Much of this relationship is the market itself, so the real test is whether VIX still matters once the S&amp;P 500 is in the same regression. Defense stocks are sometimes treated as a safe haven, so look for months where the VIX spiked but XAR held up.",
+     "next": ["<b>Control for the market.</b> Run XAR on the S&amp;P 500 <i>and</i> VIX changes together. A significant VIX coefficient there would mean XAR reacts to fear differently than its beta implies (a safe-haven or crash-risk effect).",
+              "<b>Look at the VIX spike months</b> (the far-right dots in the scatter plot) and check what XAR did relative to the S&amp;P 500 those months.",
+              "<b>Try VIX levels as a regime filter:</b> compare XAR's beta in high-VIX (above 25) vs calm months."]},
 ]
 
 
@@ -166,13 +183,14 @@ def rate_driver(px_all, rate):
 
     b = stats_["coef"]["beta"]
     return {
-        "kind": "rate",
+        "kind": "level",
+        **{k: rate[k] for k in ["unit", "unitLong", "step", "levelSuffix", "levelLabel", "sensLabel", "rollTitle", "caveat", "next", "short2"]},
         "title": rate["driver"],
         "question": rate["question"],
-        "method": f"OLS regression of XAR monthly total return on the monthly change in {rate['long']}, in percentage points, last 60 completed months.",
+        "method": f"OLS regression of XAR monthly total return on the monthly change in {rate['long']}, in {rate['unitLong']}s, last 60 completed months.",
         "period": f"{mret.index[0].strftime('%b %Y')} to {mret.index[-1].strftime('%b %Y')}",
         "bench": rate["short"],
-        "xLabel": "Change in 10-year Treasury yield, percentage points",
+        "xLabel": rate["xLabel"],
         "yLabel": "XAR monthly return, %",
         "yieldNow": r(px[t].iloc[-1], 3),
         **stats_,
@@ -180,7 +198,7 @@ def rate_driver(px_all, rate):
         "rollingBeta": rolling,
         "horizons": horizons,
         "status": "Significant" if b["p"] < 0.05 else "Not significant",
-        "result": f"{b['est']:+.2f}% XAR per +1pp yield, R² {stats_['r2']:.2f}, "
+        "result": f"{b['est']:+.2f}% XAR per +1 {rate['unit']} {rate['short2']}, R² {stats_['r2']:.2f}, "
                   + ("p<0.001" if b["p"] < 0.001 else f"p={b['p']:.3f}"),
     }
 
