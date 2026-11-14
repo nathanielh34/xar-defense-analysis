@@ -21,7 +21,7 @@
     stat(`<span class="${cls(now.change30)}">${sgn(now.change30)}</span>`, "Change over 30 days") +
     stat(`<span class="${cls(now.tone)}">${now.tone == null ? "—" : sgn(now.tone * 100, 0) + "%"}</span>`, "Tone", "net share of positive headlines") +
     stat(`${now.articles30}`, "Headlines, last 30 days", `<span class="pos">${now.pos30} positive</span> · <span class="neg">${now.neg30} negative</span>`) +
-    stat(cov.articles.toLocaleString(), "Headlines since " + esc((cov.start || "").slice(0, 7)), `${cov.overrides} manual overrides`);
+    stat(cov.articles.toLocaleString(), "Headlines since " + esc((cov.start || "").slice(0, 7)), `${cov.ignored ? cov.ignored.toLocaleString() + " off-topic ignored · " : ""}${cov.overrides} overrides`);
 
   // ---------------- charts ----------------
   let built = false, logMonthSetter = null;
@@ -121,7 +121,7 @@
 
   const scoreSeg = $("#siScoreFilter");
   function drawScoreSeg() {
-    const opts = ["All", "+1", "0", "−1", "Overridden"];
+    const opts = ["All", "+1", "0", "−1", "Overridden", "Ignored"];
     scoreSeg.innerHTML = opts.map((o) => `<button class="${o === log.score ? "on" : ""}">${o}</button>`).join("");
     scoreSeg.querySelectorAll("button").forEach((b, i) => (b.onclick = () => { log.score = opts[i]; log.limit = 100; drawScoreSeg(); drawLog(); }));
   }
@@ -138,7 +138,8 @@
       rows = yr.filter((r) => r[1].startsWith(log.month));
     }
     const f = rows.filter((r) =>
-      (log.score === "All" || (log.score === "+1" && r[2] > 0) || (log.score === "0" && r[2] === 0) || (log.score === "−1" && r[2] < 0) || (log.score === "Overridden" && r[4])) &&
+      (log.score === "Ignored" ? r[10] : !r[10]) &&
+      (log.score === "All" || log.score === "Ignored" || (log.score === "+1" && r[2] > 0) || (log.score === "0" && r[2] === 0) || (log.score === "−1" && r[2] < 0) || (log.score === "Overridden" && r[4])) &&
       (!log.q || r[5].toLowerCase().includes(log.q) || r[6].toLowerCase().includes(log.q)));
     const pos = f.filter((r) => r[2] > 0).length, neg = f.filter((r) => r[2] < 0).length;
     $("#siCount").innerHTML = `${f.length} headlines · <span class="pos">${pos} +1</span> · <span class="neg">${neg} −1</span>`;
@@ -146,7 +147,7 @@
     $("#siTable").innerHTML = `<thead><tr><th>Date</th><th>Score</th><th>Headline</th><th>Why</th><th></th></tr></thead><tbody>` +
       (shown.length ? shown.map((r) => `<tr>
         <td class="nowrap">${r[1]}</td>
-        <td>${scorePill(r[2])}${r[4] ? `<div class="muted small" title="Automatic score was ${r[3]}">edited</div>` : ""}</td>
+        <td>${r[10] ? '<span class="pill">ignored</span>' : scorePill(r[2])}${r[4] ? `<div class="muted small" title="Automatic score was ${r[3]}">edited</div>` : ""}</td>
         <td><a href="${esc(r[7])}" target="_blank" rel="noopener" class="hl">${esc(r[5])}</a><div class="muted small">${esc(r[6])} · ${esc(r[8])} · <span class="mono">${r[0]}</span></div></td>
         <td>${(r[9] || []).map((w) => `<span class="pill">${esc(w)}</span>`).join(" ")}</td>
         <td><button class="btn small" data-id="${r[0]}">Change</button></td></tr>`).join("") : `<tr><td colspan="5" class="empty">No headlines match.</td></tr>`) + "</tbody>";

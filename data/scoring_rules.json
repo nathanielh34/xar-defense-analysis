@@ -1,11 +1,11 @@
 {
-  "_about": "Keyword rules for the XAR strength index. Each rule is a case-insensitive regular expression. A headline's score is the sign of the sum of matched weights: >0 scores +1, <0 scores -1, otherwise 0. Edit freely; the next scheduled run rescores everything.",
+  "_about": "Keyword rules for the XAR strength index. Each rule is a case-insensitive regular expression. A headline's score is the sign of the sum of matched weights: >0 scores +1, <0 scores -1, otherwise 0. Edit freely; the next scheduled run rescores everything. 'relevance': a headline must match this to count at all (keeps out non-defense stories). 'exclude': headlines matching this never count. Manual overrides always count.",
   "halfLifeDays": 14,
   "rules": [
     {
       "label": "Conflict / escalation",
       "weight": 1,
-      "pattern": "\\b(war|wartime|invasion|invades?|invaded|airstrikes?|air strikes?|missile strikes?|drone strikes?|missile attacks?|drone attacks?|escalat\\w*|offensive|mobiliz\\w*|hostilities|incursion|shelling|bombard\\w*|military buildup)\\b"
+      "pattern": "\\b(war|wartime|invasion|invades?|invaded|airstrikes?|air strikes?|missile strikes?|drone strikes?|missile attacks?|drone attacks?|escalat\\w*|offensive|mobiliz\\w*|hostilities|incursion|shelling|bombard\\w*|military buildup|retaliat\\w*|struck|counterattack\\w*|counteroffensive|targets? (\\w+ )?(us|u\\.s\\.|american|israeli|military|base|bases|sites?)|hits? (\\w+ ){0,3}(bases?|sites?|targets)|clashes|fighting)\\b"
     },
     {
       "label": "Threats & weapons tests",
@@ -15,7 +15,7 @@
     {
       "label": "Budget increase",
       "weight": 1,
-      "pattern": "((defen[cs]e|military|pentagon) (budget|spending)\\W+(\\w+\\W+){0,4}(increase|increases|boost|boosts|hike|record|surge|jump|rise|rises|grow|grows|expand)|(increase|boost|hike|raise|raises|ramp up|double)\\w*\\W+(\\w+\\W+){0,3}(defen[cs]e|military) (spending|budget)|\\bndaa\\b\\W+(\\w+\\W+){0,3}(pass\\w*|sign\\w*|approv\\w*)|\\b(pass\\w*|sign\\w*|approv\\w*)\\W+(\\w+\\W+){0,3}(the )?ndaa\\b|supplemental (aid|funding)|\\brearm\\w*|trillion[- ]dollar (defen[cs]e|military))"
+      "pattern": "((defen[cs]e|military|pentagon) (budget|spending)\\W+(\\w+\\W+){0,4}(increase|increases|boost|boosts|hike|record|surge|jump|rise|rises|grow|grows|expand)|(increase|boost|hike|raise|raises|ramp up|double)\\w*\\W+(\\w+\\W+){0,3}(defen[cs]e|military) (spending|budget)|\\bndaa\\b\\W+(\\w+\\W+){0,3}(pass\\w*|sign\\w*|approv\\w*)|\\b(pass\\w*|sign\\w*|approv\\w*)\\W+(\\w+\\W+){0,3}(the )?ndaa\\b|supplemental (aid|funding)|\\brearm\\w*|trillion[- ]dollar (defen[cs]e|military)|record (defen[cs]e|military) (budget|spending)|(approv\\w*|pass\\w*|boost\\w*|unveil\\w*)\\W+(\\w+\\W+){0,3}(defen[cs]e|military) (budget|spending)|(defen[cs]e|military) (budget|spending)\\W+(\\w+\\W+){0,2}approv\\w*|trillion\\W+(\\w+\\W+){0,4}(defen[cs]e|military))"
     },
     {
       "label": "Allied spending pledge",
@@ -40,7 +40,7 @@
     {
       "label": "Peace effort breaks down",
       "weight": 2,
-      "pattern": "\\b((peace|ceasefire|cease-fire|truce) (talks?|deal|efforts?|negotiations?)?\\s*(stall\\w*|collaps\\w*|break\\w* down|broke down|falter\\w*|fail\\w*|violat\\w*|shatter\\w*)|(talks|negotiations) (collapse|break down|stall))\\b"
+      "pattern": "\\b((peace|ceasefire|cease-fire|truce) (talks?|deal|efforts?|negotiations?)?\\s*(stall\\w*|collaps\\w*|break\\w* down|broke down|falter\\w*|fail\\w*|violat\\w*|shatter\\w*)|(talks|negotiations) (collapse|break down|stall)|hopes? (for|of) (a )?(\\w+ )?(deal|peace|ceasefire|truce) (fade|fades|dim|dims|fading)|talks (collapse|break down|stall))\\b"
     },
     {
       "label": "Ceasefire / peace",
@@ -60,7 +60,7 @@
     {
       "label": "Weak results / downgrade",
       "weight": -1,
-      "pattern": "\\b(miss(es|ed)? (\\w+ )?(estimates|expectations|forecasts?)|(cuts?|lowers?|slashes?|trims?) ([\\w-]+ ){0,2}(guidance|outlook|forecast)|downgrade[sd]?|price target cut|writedowns?|write-downs?|charges? of|profit warning|layoffs?|job cuts)\\b"
+      "pattern": "\\b(miss(es|ed)? (\\w+ )?(estimates|expectations|forecasts?)|(cuts?|lowers?|slashes?|trims?) ([\\w-]+ ){0,2}(guidance|outlook|forecast)|downgrade[sd]?|price target cut|writedowns?|write-downs?|charges? of|\\w+ charge|posts? (\\w+ ){0,3}loss|net loss|loss widens|profit warning|layoffs?|job cuts)\\b"
     },
     {
       "label": "Stocks fall",
@@ -72,5 +72,7 @@
       "weight": -1,
       "pattern": "\\b((labor|union|workers?|machinists) (strike|walkout)|strike (vote|ends?|begins?)|walkout|probe|investigation|lawsuit|sued|indict\\w*|fined|penalty|export ban|bribery|fraud)\\b"
     }
-  ]
+  ],
+  "relevance": "\\b(defen[cs]e|military|militar\\w*|army|navy|naval|air force|space force|marines?|pentagon|nato|missiles?|weapons?|arms|munitions?|ammunition|artillery|fighter|jets?|aircraft|warships?|submarines?|tanks?|drones?|radars?|troops|soldiers|war|wars|wartime|ceasefire|cease-fire|truce|invasion|airstrikes?|strikes?|attacks?|bomb\\w*|security|ukraine|ukrainian|russia|russian|kremlin|israel|gaza|hamas|hezbollah|iran|houthis?|taiwan|china|chinese|north korea|lockheed|raytheon|rtx|northrop|general dynamics|l3harris|boeing|bae systems|huntington ingalls|leidos|anduril|palantir|ndaa|contractors?|aerospace|hypersonic|nuclear|icbm|f-35|b-21)\\b",
+  "exclude": "\\b(geforce|nvidia|gaming|gamer|laptop|graphics card|gpu|rtx ?[2-5]0[5-9]0|ryzen|newegg|best buy|amazon deal|black friday|cyber monday|video game|playstation|xbox|steam deck|nba|nfl|mlb|nhl|fifa|movie|box office|netflix)\\b"
 }

@@ -56,7 +56,7 @@ jobs:
             exit 0
           fi
           git commit -m "Update XAR market data"
-          git pull --rebase origin main
+          git pull --rebase -X theirs origin main   # data files: keep this run's version (archive merges by id on the next run)
           git push origin HEAD:main
 
       - name: Rebuild the website

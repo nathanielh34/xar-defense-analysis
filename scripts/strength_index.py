@@ -46,10 +46,10 @@ RECENT_N = 400          # articles embedded directly in the site
 
 QUERIES = [
     ("Defense stocks", 'defense stocks OR "defense contractor" OR "defense industry" OR "defense ETF"'),
-    ("Prime contractors", '"Lockheed Martin" OR "Northrop Grumman" OR RTX OR Raytheon OR "General Dynamics" OR L3Harris'),
+    ("Prime contractors", '"Lockheed Martin" OR "Northrop Grumman" OR "RTX Corp" OR Raytheon OR "General Dynamics" OR L3Harris'),
     ("Budget & policy", '"Pentagon budget" OR "defense spending" OR NDAA OR "defense budget" OR "NATO spending"'),
     ("Conflict", '(war OR invasion OR ceasefire OR airstrike OR "missile strike") military'),
-    ("Contracts & arms sales", '"Pentagon contract" OR "arms sale" OR "awarded a contract" OR "foreign military sale"'),
+    ("Contracts & arms sales", '"Pentagon contract" OR "defense contract" OR "Army contract" OR "Navy contract" OR "Air Force contract" OR "arms sale" OR "foreign military sale"'),
 ]
 
 
@@ -159,8 +159,19 @@ def week_starts(start, end):
         d += timedelta(days=7)
 
 
+def query_version():
+    return hashlib.sha1(json.dumps([QUERIES, PER_QUERY_CAP]).encode()).hexdigest()[:8]
+
+
 def backfill(arts, since, hours):
     cov = json.loads(COVERAGE.read_text()) if COVERAGE.exists() else {}
+    if cov.get("_queries") != query_version():
+        # Searches changed: collect the history again so every week uses the same searches
+        print("Search set changed; starting the backfill from scratch.")
+        arts.clear()
+        for f in NEWS_DIR.glob("*.jsonl"):
+            f.unlink()
+        cov = {"_queries": query_version()}
     t0 = time.time()
     today = datetime.now(NY).date()
     for ws in week_starts(since, today - timedelta(days=today.weekday() + 14)):
@@ -175,7 +186,7 @@ def backfill(arts, since, hours):
         print(f"  week {key}: +{n} headlines")
         if len(cov) % 10 == 0:
             save_archive(arts); COVERAGE.write_text(json.dumps(cov, indent=0))
-    save_archive(arts)
+    recent(arts)  # make sure the latest weeks are present too
     COVERAGE.parent.mkdir(parents=True, exist_ok=True)
     COVERAGE.write_text(json.dumps(cov, indent=0))
 
@@ -204,8 +215,12 @@ def load_overrides():
         return {}
 
 
-def score_all(arts, rules, overrides):
+def score_all(arts, rules, overrides, cfg=None):
+    cfg = cfg or {}
+    rel = re.compile(cfg["relevance"], re.I) if cfg.get("relevance") else None
+    exc = re.compile(cfg["exclude"], re.I) if cfg.get("exclude") else None
     for a in arts.values():
+        a["skip"] = bool((exc and exc.search(a["title"])) or (rel and not rel.search(a["title"])))
         hits = [(lab, w) for lab, w, p in rules if p.search(a["title"])]
         s = sum(w for _, w in hits)
         a["auto"] = 1 if s > 0 else -1 if s < 0 else 0
@@ -213,6 +228,10 @@ def score_all(arts, rules, overrides):
         o = overrides.get(a["id"])
         a["score"] = int(o["score"]) if o and "score" in o else a["auto"]
         a["over"] = bool(o)
+        if o:
+            a["skip"] = False  # a manual score always counts
+        if a["skip"]:
+            a["score"] = 0
 
 
 # ----------------------------------------------------------------- index
@@ -222,6 +241,8 @@ def build_index(arts, half_life):
     lam = 0.5 ** (1 / half_life)
     by_day = {}
     for a in arts.values():
+        if a.get("skip"):
+            continue
         d = by_day.setdefault(a["date"], [0, 0])
         d[0] += a["score"]; d[1] += 1
     day = date.fromisoformat(min(by_day))
@@ -303,7 +324,7 @@ def backtest(series):
 # ----------------------------------------------------------------- outputs
 def write_outputs(arts, cfg, series, tests, monthly):
     rows = sorted(arts.values(), key=lambda a: (a["date"], a["id"]), reverse=True)
-    pack = lambda a: [a["id"], a["date"], a["score"], a["auto"], int(a["over"]), a["title"], a["source"], a["link"], a["topic"], a["why"]]
+    pack = lambda a: [a["id"], a["date"], a["score"], a["auto"], int(a["over"]), a["title"], a["source"], a["link"], a["topic"], a["why"], int(a.get("skip", False))]
     # Scored archive per year, loaded on demand by the site
     years = sorted({a["date"][:4] for a in rows})
     for y in years:
@@ -314,7 +335,7 @@ def write_outputs(arts, cfg, series, tests, monthly):
     last = series[-1] if series else [None, 0, None, 0]
     ago30 = series[-31] if len(series) > 30 else (series[0] if series else last)
     cutoff = (datetime.now(NY).date() - timedelta(days=30)).isoformat()
-    a30 = [a for a in rows if a["date"] >= cutoff]
+    a30 = [a for a in rows if a["date"] >= cutoff and not a.get("skip")]
     out = {
         "updated": datetime.now(timezone.utc).isoformat(timespec="minutes"),
         "halfLifeDays": cfg.get("halfLifeDays", 14),
@@ -323,7 +344,7 @@ def write_outputs(arts, cfg, series, tests, monthly):
         "now": {"date": last[0], "index": last[1], "tone": last[2], "count7": last[3],
                 "change30": round(last[1] - ago30[1], 2) if series else None,
                 "articles30": len(a30), "pos30": sum(a["score"] > 0 for a in a30), "neg30": sum(a["score"] < 0 for a in a30)},
-        "coverage": {"start": series[0][0] if series else None, "articles": len(rows),
+        "coverage": {"start": series[0][0] if series else None, "articles": sum(not a.get("skip") for a in rows), "ignored": sum(bool(a.get("skip")) for a in rows),
                      "scored": sum(a["score"] != 0 for a in rows), "overrides": sum(a["over"] for a in rows), "years": years},
         "series": series,
         "recent": [pack(a) for a in rows[:RECENT_N]],
@@ -349,7 +370,7 @@ def main():
         recent(arts)
 
     cfg, rules = load_rules()
-    score_all(arts, rules, load_overrides())
+    score_all(arts, rules, load_overrides(), cfg)
     series = build_index(arts, cfg.get("halfLifeDays", 14))
     try:
         tests, monthly = backtest(series)
